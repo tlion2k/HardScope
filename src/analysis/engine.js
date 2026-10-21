@@ -4,6 +4,7 @@ const hw = require('./hardware');
 const { planUpgrades, normalizePrefs } = require('./upgrade');
 const { matchProfile } = require('./profile-match');
 const { cpuCheck, gpuChecks, platformChecks } = require('./checks');
+const { annotate } = require('./explain');
 
 const SEVERITY_WEIGHT = { critical: 18, warning: 8, tip: 2, ok: 0 };
 // Avisos que sólo indican que faltan datos: no deben bajar el índice del equipo.
@@ -210,6 +211,7 @@ function analyze(profile, settings = {}) {
   // Orientativo: parte de 100 y resta por cada aviso según su severidad (ver SEVERITY_WEIGHT).
   const penalty = findings.reduce((s, f) => s + (NO_PENALTY.has(f.id) ? 0 : SEVERITY_WEIGHT[f.severity]), 0);
   const health = Math.max(5, 100 - penalty);
+  annotate(findings, { cpuId, gpu, chipset, platformKey, boardVsGpu, cpuVsGpu, pcie, ram, resolution, resFactor });
   const order = { critical: 0, warning: 1, tip: 2, ok: 3 };
   findings.sort((a, b) => order[a.severity] - order[b.severity]);
 
@@ -219,6 +221,7 @@ function analyze(profile, settings = {}) {
     healthWeights: SEVERITY_WEIGHT,
     laptop,
     dataIssues: profile.issues || [],
+    db: { gpus: hw.gpuDb.length, chipsets: Object.keys(hw.chipsets).length },
     counts: countBy(findings),
     components: {
       cpu: { ...cpuId, effScore: cpuEff },

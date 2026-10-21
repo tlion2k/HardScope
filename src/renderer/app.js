@@ -7,10 +7,10 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const gb = (bytes, d = 0) => (bytes ? `${(bytes / 1024 ** 3).toFixed(d)} GB` : '—');
 
 const SEV = {
-  critical: { label: 'Crítico', icon: '<path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9zM15 9l-6 6m0-6 6 6"/>' },
-  warning: { label: 'Advertencia', icon: '<path d="M12 3 2 20h20L12 3zm0 6v5m0 3v.01"/>' },
-  tip: { label: 'Consejo', icon: '<path d="M9 18h6m-5 3h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>' },
-  ok: { label: 'Correcto', icon: '<path d="M20 6 9 17l-5-5"/>' },
+  critical: { label: 'Crítico', simple: 'Importante', icon: '<path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9zM15 9l-6 6m0-6 6 6"/>' },
+  warning: { label: 'Advertencia', simple: 'Conviene revisar', icon: '<path d="M12 3 2 20h20L12 3zm0 6v5m0 3v.01"/>' },
+  tip: { label: 'Consejo', simple: 'Sugerencia', icon: '<path d="M9 18h6m-5 3h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>' },
+  ok: { label: 'Correcto', simple: 'Bien', icon: '<path d="M20 6 9 17l-5-5"/>' },
 };
 const COMP = {
   cpu: { label: 'Procesador', icon: '<path d="M6 6h12v12H6zM9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4M9.5 9.5h5v5h-5z"/>' },
@@ -22,6 +22,9 @@ const COMP = {
   system: { label: 'Sistema', icon: '<path d="M3 4h18v12H3zM8 20h8m-4-4v4"/>' },
 };
 const svg = (path) => `<svg viewBox="0 0 24 24">${path}</svg>`;
+// Vista Simple (lenguaje cotidiano) o Developer (valores, umbrales y origen de los datos).
+const isDev = () => state.settings.view === 'developer';
+const sevLabel = (s) => (isDev() ? SEV[s].label : SEV[s].simple);
 
 const state = {
   settings: loadSettings(),
@@ -38,9 +41,9 @@ const state = {
 
 function loadSettings() {
   try {
-    return { usage: 'gaming', resolution: '1440p', ...JSON.parse(localStorage.getItem('hs-settings') || '{}') };
+    return { usage: 'gaming', resolution: '1440p', view: 'simple', ...JSON.parse(localStorage.getItem('hs-settings') || '{}') };
   } catch {
-    return { usage: 'gaming', resolution: '1440p' };
+    return { usage: 'gaming', resolution: '1440p', view: 'simple' };
   }
 }
 function saveSettings() {
@@ -87,6 +90,24 @@ function bindSeg(id, key) {
 }
 bindSeg('#usageSeg', 'usage');
 bindSeg('#resSeg', 'resolution');
+
+// Cambiar de vista no recalcula nada: vuelve a dibujar los mismos resultados con otro nivel de detalle.
+function applyView() {
+  document.body.classList.toggle('developer', isDev());
+  document.body.classList.toggle('simple', !isDev());
+  $('#viewSeg').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === state.settings.view));
+}
+$('#viewSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || b.dataset.v === state.settings.view) return;
+  state.settings.view = b.dataset.v;
+  saveSettings();
+  applyView();
+  stopLive();
+  if (state.report) apply({ profile: state.profile, report: state.report });
+  flash(isDev() ? 'Vista Developer: valores, umbrales y origen de los datos' : 'Vista Simple');
+});
+applyView();
 
 $('#scanBtn').addEventListener('click', scan);
 $('#retryBtn').addEventListener('click', scan);
@@ -167,11 +188,11 @@ function renderOverview() {
   const circ = 2 * Math.PI * 80;
 
   const rows = [
-    { k: 'cpu', model: c.cpu.name, spec: `${p.cpu.physicalCores} núcleos · ${p.cpu.cores} hilos` },
-    { k: 'board', model: `${c.board.manufacturer || ''} ${c.board.model || ''}`.trim(), spec: c.board.chipset ? `Chipset ${c.board.chipset.id} · ${c.board.platform?.socket}` : '' },
-    { k: 'gpu', model: c.gpu?.match?.name || c.gpu?.name || 'Sin tarjeta de video', spec: c.gpu?.vramGb ? `${c.gpu.vramGb} GB de VRAM` : '' },
-    { k: 'ram', model: `${c.ram.totalGb} GB ${c.ram.type || ''}`.trim(), spec: `${c.ram.modules} módulo(s) · ${c.ram.configured || '?'} MT/s` },
-    { k: 'storage', model: c.storage.system?.name || 'Disco del sistema', spec: c.storage.system ? `${c.storage.system.type || ''} ${c.storage.system.bus || ''}`.trim() : '' },
+    { k: 'cpu', model: c.cpu.name, spec: `${p.cpu.physicalCores} núcleos · ${p.cpu.cores} hilos`, dev: `Índice ${c.cpu.effScore} a ${r.settings.resolution}${c.cpu.estimated ? ' · estimado por núcleos y frecuencia' : ''}` },
+    { k: 'board', model: `${c.board.manufacturer || ''} ${c.board.model || ''}`.trim(), spec: c.board.chipset ? `Chipset ${c.board.chipset.id} · ${c.board.platform?.socket}` : '', dev: c.board.platform ? `Índice plataforma ${c.board.platform.effCeiling} · ${c.board.platform.key} · slot PCIe ${c.board.chipset?.gpuPcie ?? '?'}.0` : 'Plataforma no identificada' },
+    { k: 'gpu', model: c.gpu?.match?.name || c.gpu?.name || 'Sin tarjeta de video', spec: c.gpu?.vramGb ? `${c.gpu.vramGb} GB de VRAM` : '', dev: c.gpu?.match ? `Índice ${c.gpu.score} · id «${c.gpu.match.id}»${r.balance.pcie.curWidth ? ` · enlace x${r.balance.pcie.curWidth}` : ''}` : 'No está en la base de datos' },
+    { k: 'ram', model: `${c.ram.totalGb} GB ${c.ram.type || ''}`.trim(), spec: `${c.ram.modules} módulo(s) · ${c.ram.configured || '?'} MT/s`, dev: `Canal ${c.ram.channel} · nominal ${c.ram.ratedSpeed || '?'} MT/s · ${c.ram.slots ?? '?'} ranuras` },
+    { k: 'storage', model: c.storage.system?.name || 'Disco del sistema', spec: c.storage.system ? `${c.storage.system.type || ''} ${c.storage.system.bus || ''}`.trim() : '', dev: c.storage.freePct != null ? `${c.storage.freePct} % libre en C:` : '' },
   ];
 
   $('#page-overview').innerHTML = `
@@ -185,7 +206,7 @@ function renderOverview() {
         </div>
         <div class="label">Índice del equipo</div>
         <div class="tone ov-verdict">${label}</div>
-        <p class="ov-how">Orientativo: parte de 100 y resta ${w.critical} por cada aviso crítico, ${w.warning} por advertencia y ${w.tip} por consejo. No es una medición de rendimiento.</p>
+        ${isDev() ? `<p class="ov-how num">100 − (${r.counts.critical}×${w.critical} + ${r.counts.warning}×${w.warning} + ${r.counts.tip}×${w.tip}) = ${r.health}<br>Los avisos de datos no reconocidos no restan. Mínimo 5.</p>` : '<p class="ov-how">Resumen orientativo de los avisos de tu equipo, no una medición de rendimiento.</p>'}
         ${missing ? `<button class="ov-missing" data-goto="findings">${svg(SEV.warning.icon)}${missing} dato(s) no se pudieron leer</button>` : ''}
       </div>
       <div class="card ov-list">
@@ -194,7 +215,7 @@ function renderOverview() {
             (x) => `<div class="ov-row">
               <div class="ic">${svg(COMP[x.k].icon)}</div>
               <div class="ov-kind">${COMP[x.k].label}</div>
-              <div class="ov-model"><b>${esc(x.model)}</b>${x.spec ? `<small>${esc(x.spec)}</small>` : ''}</div>
+              <div class="ov-model"><b>${esc(x.model)}</b>${x.spec ? `<small>${esc(x.spec)}</small>` : ''}${x.dev ? `<small class="dev-only ov-dev">${esc(x.dev)}</small>` : ''}</div>
             </div>`
           )
           .join('')}
@@ -211,16 +232,39 @@ const labelUsage = () => ({ gaming: 'juegos', creation: 'creación de contenido'
 
 // ---------------- Diagnóstico ----------------
 function findingHtml(f) {
+  const dev = isDev();
+  const title = dev ? f.title : f.plain?.title || f.title;
+  const text = dev ? f.detail : f.plain?.text || f.detail;
+  const action = dev ? f.action : f.plain?.action || f.action;
   return `<article class="finding sev-${f.severity}">
     <div class="sic">${svg(SEV[f.severity].icon)}</div>
     <div>
-      <div class="meta"><span>${SEV[f.severity].label}</span><span>${COMP[f.component].label}</span></div>
-      <h4>${esc(f.title)}</h4>
-      <p>${esc(f.detail)}</p>
-      ${f.action ? `<div class="todo">${svg('<path d="M5 12h14m-6-6 6 6-6 6"/>')}<div><b>Qué hacer:</b> ${esc(f.action)}</div></div>` : ''}
+      <div class="meta"><span>${sevLabel(f.severity)}</span><span>${COMP[f.component].label}</span>${dev && f.id ? `<span class="fid">${esc(f.id)}</span>` : ''}</div>
+      <h4>${esc(title)}</h4>
+      ${text ? `<p>${esc(text)}</p>` : ''}
+      ${action ? `<div class="todo">${svg('<path d="M5 12h14m-6-6 6 6-6 6"/>')}<div><b>Qué hacer:</b> ${esc(action)}</div></div>` : ''}
       ${checksHtml(f.checks)}
+      ${dev ? evidenceHtml(f.evidence) : f.detail && f.plain?.text ? `<details class="tech"><summary>Ver explicación técnica</summary><p>${esc(f.detail)}</p></details>` : ''}
     </div>
   </article>`;
+}
+
+// Vista Developer: los valores y umbrales que llevaron a la conclusión.
+function evidenceHtml(ev) {
+  if (!ev?.length) return '';
+  return `<div class="evidence"><b>Evidencia</b><dl>${ev.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>`;
+}
+
+// En Simple lo que está bien queda plegado para no distraer.
+function findingsList(list) {
+  if (!list.length) return '<div class="empty">Nada que mostrar aquí.</div>';
+  if (isDev()) return list.map(findingHtml).join('');
+  const todo = list.filter((f) => f.severity !== 'ok');
+  const good = list.filter((f) => f.severity === 'ok');
+  return (
+    (todo.length ? todo.map(findingHtml).join('') : '<div class="empty">No hay nada que revisar. 👍</div>') +
+    (good.length ? `<details class="good-list"><summary>${svg(SEV.ok.icon)}Lo que está bien (${good.length})</summary>${good.map(findingHtml).join('')}</details>` : '')
+  );
 }
 
 // "Verifica antes de comprar": lo que HardScope no puede comprobar por sí solo.
@@ -240,10 +284,10 @@ function renderFindings() {
   if (!comps.includes(state.filter)) state.filter = 'all';
   const list = r.findings.filter((f) => state.filter === 'all' || f.component === state.filter);
   $('#page-findings').innerHTML = `
-    <div class="page-head"><h1>Diagnóstico y consejos</h1><p><span class="tone sev-critical">● Rojo</span>: problema importante · <span class="tone sev-warning">● Amarillo</span>: conviene revisar · <span class="tone sev-tip">● Azul</span>: consejo · <span class="tone sev-ok">● Verde</span>: correcto. Las comparaciones entre componentes se basan en índices estimados, no en mediciones.</p></div>
+    <div class="page-head">${isDev() ? `<h1>Diagnóstico y consejos</h1><p><span class="tone sev-critical">● Crítico</span> · <span class="tone sev-warning">● Advertencia</span> · <span class="tone sev-tip">● Consejo</span> · <span class="tone sev-ok">● Correcto</span>. Cada hallazgo muestra su evidencia: índices, umbrales y origen de los datos.</p>` : `<h1>Qué revisar en tu equipo</h1><p><span class="tone sev-critical">● Importante</span> · <span class="tone sev-warning">● Conviene revisar</span> · <span class="tone sev-tip">● Sugerencia</span> · <span class="tone sev-ok">● Bien</span>. Las comparaciones son estimaciones, no mediciones.</p>`}</div>
     ${dataIssuesHtml(r.dataIssues)}
     <div class="filters">${comps.map((k) => `<button data-f="${k}" class="${state.filter === k ? 'on' : ''}">${k === 'all' ? 'Todos' : COMP[k].label} <span class="num">${k === 'all' ? r.findings.length : r.findings.filter((f) => f.component === k).length}</span></button>`).join('')}</div>
-    ${list.map(findingHtml).join('') || '<div class="empty">Nada que mostrar aquí.</div>'}`;
+    ${findingsList(list)}`;
   $('#page-findings .filters').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -253,6 +297,17 @@ function renderFindings() {
 }
 
 // ---------------- Placa vs GPU ----------------
+// Vista Simple: qué tienes y la conclusión en una frase, sin índices ni PCIe.
+function simpleBalance(r) {
+  const { board, gpu } = r.components;
+  const cf = r.findings.find((x) => ['cpu-bottleneck', 'gpu-weak-vs-cpu', 'cpu-gpu-balanced'].includes(x.id));
+  return `<div class="card simple-only simple-balance">
+    <div class="sb-row"><div class="ic">${svg(COMP.board.icon)}</div><div><small>Placa madre</small><b>${esc(`${board.manufacturer || ''} ${board.model || ''}`)}</b></div></div>
+    <div class="sb-row"><div class="ic">${svg(COMP.gpu.icon)}</div><div><small>Tarjeta de video</small><b>${esc(gpu?.match?.name || gpu?.name || 'Sin tarjeta dedicada')}</b></div></div>
+    ${cf ? `<p><b>${esc(cf.plain?.title || cf.title)}.</b> ${esc(cf.plain?.text || '')}</p>` : ''}
+    <p class="muted" style="font-size:12.5px">Cambia a la vista Developer para ver índices, PCIe y la escala de comparación.</p>
+  </div>`;
+}
 function renderBalance() {
   const r = state.report;
   const { board, gpu, cpu } = r.components;
@@ -269,14 +324,16 @@ function renderBalance() {
   const max = Math.max(bvg.ceiling || 0, bvg.gpuScore || 0, cvg.cpuScore || 0, 40) * 1.15;
   const pos = (v) => `${Math.min(100, (v / max) * 100)}%`;
   const lanesUsed = pcie.curWidth || pcie.lanes || 0;
-  const recs = r.findings.filter((x) => ['board', 'gpu', 'cpu'].includes(x.component) && x.severity !== 'ok');
+  const recs = r.findings.filter((x) => ['board', 'gpu', 'cpu'].includes(x.component) && x.severity !== 'ok' && x !== f);
 
   $('#page-balance').innerHTML = `
-    <div class="page-head"><h1>Placa madre vs tarjeta de video</h1><p>Compara el índice estimado de la plataforma (socket, mejor procesador compatible y PCIe) con el de tu tarjeta de video. Son índices de referencia, no mediciones: el resultado real depende del juego y la resolución.</p></div>
+    <div class="page-head"><h1>Placa madre vs tarjeta de video</h1><p>${isDev() ? 'Compara el índice estimado de la plataforma (socket, mejor procesador compatible y PCIe) con el de tu tarjeta de video. Son índices de referencia, no mediciones: el resultado real depende del juego y la resolución.' : 'Si tu placa y tu tarjeta de video están bien emparejadas, o si una se queda corta para la otra.'}</p></div>
     <div class="verdict tone sev-${V.sev}" style="border-color:color-mix(in srgb,var(--c) 40%,transparent);background:color-mix(in srgb,var(--c) 7%,transparent)">
       <div class="big">${svg(V.icon)}</div>
-      <div><h2>${esc(V.title)}</h2><p>${esc(f?.detail || '')}</p>${f?.action ? `<p style="margin-top:8px;color:var(--text)"><b>Qué hacer:</b> ${esc(f.action)}</p>` : ''}${checksHtml(f?.checks)}</div>
+      <div><h2>${esc(isDev() ? V.title : f?.plain?.title || V.title)}</h2><p>${esc(isDev() ? f?.detail || '' : f?.plain?.text || f?.detail || '')}</p>${f?.action ? `<p style="margin-top:8px;color:var(--text)"><b>Qué hacer:</b> ${esc(isDev() ? f.action : f.plain?.action || f.action)}</p>` : ''}${checksHtml(f?.checks)}${isDev() ? evidenceHtml(f?.evidence) : ''}</div>
     </div>
+    ${simpleBalance(r)}
+    <div class="dev-only">
     <div class="vs">
       <div class="card side">
         <h3>${svg(COMP.board.icon)} Placa / plataforma</h3>
@@ -341,7 +398,8 @@ function renderBalance() {
         </dl>
       </div>
     </div>
-    ${recs.length ? `<div class="page-head" style="margin-top:24px"><h1 style="font-size:20px">Recomendaciones para placa, GPU y CPU</h1></div>${recs.map(findingHtml).join('')}` : ''}`;
+    </div>
+    ${recs.length ? `<div class="page-head" style="margin-top:24px"><h1 style="font-size:20px">${isDev() ? 'Otros hallazgos de placa, GPU y CPU' : 'Otras cosas para revisar'}</h1></div>${recs.map(findingHtml).join('')}` : ''}`;
 }
 
 // ---------------- Próxima mejora ----------------
@@ -368,6 +426,32 @@ const stepNotes = (s) =>
     .filter(Boolean)
     .join('');
 
+const SIMPLE_ROWS = new Set(['Tarjeta de video', 'Procesador', 'Memoria de video (VRAM)', 'Placa madre', 'Plataforma', 'Memoria RAM', 'Fuente recomendada', 'Índice de rendimiento estimado', 'Equilibrio']);
+
+function simpleRows(rows) {
+  return rows
+    .filter((row) => SIMPLE_ROWS.has(row.label))
+    .map((row) => (row.label === 'Índice de rendimiento estimado' ? { ...row, label: 'Rendimiento en juegos (estimado)', before: 'Actual', after: row.diff === 'Base' ? 'Similar' : 'Mayor' } : row));
+}
+
+function simpleReason(s) {
+  if (s.kind === 'gpu') return 'Es el cambio que más se notaría en tu equipo, sin que otra pieza quede por debajo.';
+  if (s.kind === 'cpu') return 'Tu procesador es lo que más limita ahora. Este modelo encaja en tu placa actual.';
+  return 'Tu placa ya no admite un procesador mejor, así que hay que cambiar placa, procesador y memoria juntos.';
+}
+
+function stepEvidence(s) {
+  const fmt = (x) => `CPU ${x.cpu} · GPU ${x.gpu} · plataforma ${x.ceiling ?? '—'} → mínimo ${x.perf}`;
+  return [
+    ['Índices antes', fmt(s.before)],
+    ['Índices después', fmt(s.after)],
+    ['Ganancia', `${s.gainPct} % (mínimo después / mínimo antes)`],
+    ['Nivel de gasto', state.report.upgrades.budget],
+    ['Criterio GPU', 'índice ≥ actual ×1,25 y ≤ índice del procesador/plataforma ×1,08; año ≥ 2022'],
+    ['Equilibrio', 'GPU/CPU entre 0,5 y 1,1 y GPU ≤ plataforma ×1,1'],
+  ];
+}
+
 function compareTable(rows) {
   return `<table class="cmp">
     <thead><tr><th></th><th>Ahora</th><th>Con la mejora</th><th>Diferencia</th></tr></thead>
@@ -389,14 +473,15 @@ function renderUpgrade() {
         <div class="kicker">Siguiente actualización recomendada · ${esc(next.title)}</div>
         <div class="up-row">
           <div class="up-pick"><div class="ic">${svg(STEP_ICON[next.kind])}</div><div>${pickHtml(next.pick, 'h2')}</div></div>
-          <div class="up-gain">${next.gainPct < 5 ? '<b class="num">Base</b><span>prepara el siguiente paso</span>' : `<b class="num">+${next.gainPct}%</b><span>índice de rendimiento<br>estimado</span>`}</div>
+          <div class="up-gain">${next.gainPct < 5 ? '<b class="num">Base</b><span>prepara el siguiente paso</span>' : `<b class="num">+${next.gainPct}%</b><span>${isDev() ? 'índice de rendimiento<br>estimado' : 'más rendimiento<br>(estimado)'}</span>`}</div>
         </div>
-        <p>${esc(next.reason)}</p>
+        <p>${esc(isDev() ? next.reason : simpleReason(next))}</p>
         ${next.alternatives.length ? `<div class="alts"><small>Otras alternativas de rendimiento:</small>${next.alternatives.map((a) => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}
         ${stepNotes(next)}
         ${checksHtml(next.checks)}
+        ${isDev() ? evidenceHtml(stepEvidence(next)) : ''}
       </div>
-      <div class="card cmp-card"><h3>Antes y después</h3>${compareTable(next.compare)}</div>`
+      <div class="card cmp-card"><h3>Antes y después</h3>${compareTable(isDev() ? next.compare : simpleRows(next.compare))}</div>`
     : `<div class="verdict tone sev-ok" style="border-color:color-mix(in srgb,var(--c) 40%,transparent);background:color-mix(in srgb,var(--c) 7%,transparent)"><div class="big">${svg(SEV.ok.icon)}</div><div><h2>No hay una mejora pendiente</h2><p>${esc(u.final)}</p></div></div>`;
 
   const road =
@@ -408,9 +493,9 @@ function renderUpgrade() {
               <div class="road-n num">${i + 1}</div>
               <div class="card">
                 <div class="road-top"><div><small class="muted">${esc(s.title)}</small>${pickHtml(s.pick, 'h4')}</div><b class="num gain">${s.gainPct < 5 ? 'Base' : `+${s.gainPct}%`}</b></div>
-                <p class="muted" style="margin:6px 0 10px">${esc(s.reason)}</p>
+                <p class="muted" style="margin:6px 0 10px">${esc(isDev() ? s.reason : simpleReason(s))}</p>
                 ${stepNotes(s)}${checksHtml(s.checks)}
-                <div class="road-foot">${afterBadge(s.after)}<span class="muted num">CPU ${s.after.cpu} · GPU ${s.after.gpu}${s.after.ceiling ? ` · Placa ${s.after.ceiling}` : ''}</span></div>
+                <div class="road-foot">${afterBadge(s.after)}<span class="muted num dev-only">CPU ${s.after.cpu} · GPU ${s.after.gpu}${s.after.ceiling ? ` · Placa ${s.after.ceiling}` : ''}</span></div>
               </div>
             </div>`
           )
@@ -418,9 +503,9 @@ function renderUpgrade() {
       : '';
 
   $('#page-upgrade').innerHTML = `
-    <div class="page-head"><h1>Tu próxima mejora</h1><p>Qué conviene actualizar para ganar rendimiento sin dejar otro componente por debajo (${labelUsage()} a ${esc(state.report.settings.resolution)}). Son alternativas de rendimiento según índices estimados, no una lista de compra.</p></div>
+    <div class="page-head"><h1>Tu próxima mejora</h1><p>${isDev() ? `Simulación por pasos con índices estimados (${labelUsage()} a ${esc(state.report.settings.resolution)}). Alternativas de rendimiento, no una lista de compra.` : 'Qué conviene cambiar para que tu equipo rinda más, sin que otra pieza quede por debajo.'}</p></div>
     ${hero}${road}
-    ${u.steps.length ? `<p class="muted" style="margin-top:18px">${esc(u.final)} Los porcentajes son índices estimados para juegos, no FPS medidos: el resultado real depende del juego, la resolución y la configuración.</p>` : ''}`;
+    ${u.steps.length ? `<p class="muted" style="margin-top:18px">${esc(u.final)} ${isDev() ? 'Los porcentajes son índices estimados para juegos, no FPS medidos: el resultado real depende del juego, la resolución y la configuración.' : 'El porcentaje es una estimación para juegos; el resultado real depende del juego y la configuración.'}</p>` : ''}`;
 }
 
 // ---------------- Monitor en vivo ----------------
@@ -444,15 +529,15 @@ function renderLive() {
     </div>
     <div class="gauges">
       ${[['cpu', 'CPU total', '%'], ['cpuMaxCore', 'Núcleo más cargado', '%'], ['gpu', 'GPU', '%'], ['ram', 'RAM', '%'], ['vram', 'VRAM', '%'], ['gpuTemp', 'Temp. GPU', '°C']]
-        .map(([k, l, u]) => `<div class="lg" data-k="${k}"><small>${l}</small><b class="num">—<em>${u}</em></b><div class="meter"><i style="width:0"></i></div></div>`)
+        .map(([k, l, u]) => `<div class="lg${['cpuMaxCore', 'vram'].includes(k) ? ' dev-only' : ''}" data-k="${k}"><small>${l}</small><b class="num">—<em>${u}</em></b><div class="meter"><i style="width:0"></i></div></div>`)
         .join('')}
     </div>
-    <div class="card" style="margin-bottom:16px">
+    <div class="card dev-only" style="margin-bottom:16px">
       <div class="legend"><span style="--lc:#22d3ee">CPU</span><span style="--lc:#8b5cf6">GPU</span><span style="--lc:#2ee6a0">RAM</span><span style="--lc:#ffb547">VRAM</span><span style="--lc:#ff4d6d">Núcleo máx.</span></div>
       <div class="chart-wrap"><canvas id="liveChart"></canvas></div>
     </div>
     <div class="two">
-      <div class="card"><h3>Carga por hilo del procesador</h3><div class="cores" id="cores"></div></div>
+      <div class="card dev-only"><h3>Carga por hilo del procesador</h3><div class="cores" id="cores"></div></div>
       <div class="card alerts"><h3>Alertas en vivo</h3><div id="liveAlerts"><div class="empty" style="padding:20px">Sin alertas</div></div></div>
     </div>`;
   state.chart = new LineChart($('#liveChart'), [
@@ -524,7 +609,8 @@ async function pickGpu(name) {
 function renderComponents() {
   const p = state.profile;
   const r = state.report;
-  const table = (rows) => `<table>${rows.filter((x) => x[1] != null && x[1] !== '').map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>`;
+  // Tercer valor de cada fila: true = sólo en la vista Developer.
+  const table = (rows) => `<table>${rows.filter((x) => x[1] != null && x[1] !== '').map(([k, v, dev]) => `<tr class="${dev ? 'dev-only' : ''}"><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>`;
   const block = (k, inner) => `<div class="card spec-card"><div class="head">${svg(COMP[k].icon)}<h3 style="margin:0">${COMP[k].label}</h3></div>${inner}</div>`;
   const ram = r.components.ram;
   $('#page-components').innerHTML = `
@@ -532,17 +618,17 @@ function renderComponents() {
     ${block('cpu', table([
       ['Modelo', r.components.cpu.name],
       ['Núcleos / hilos', `${p.cpu.physicalCores} / ${p.cpu.cores}`],
-      ['Núcleos P / E', p.cpu.performanceCores && p.cpu.efficiencyCores ? `${p.cpu.performanceCores} / ${p.cpu.efficiencyCores}` : null],
+      ['Núcleos P / E', p.cpu.performanceCores && p.cpu.efficiencyCores ? `${p.cpu.performanceCores} / ${p.cpu.efficiencyCores}` : null, true],
       ['Frecuencia base', p.cpu.speed ? `${p.cpu.speed} GHz` : null],
-      ['Caché L3', p.cpu.cache?.l3 ? `${Math.round(p.cpu.cache.l3 / 1024 / 1024)} MB` : null],
-      ['Índice estimado', `${r.components.cpu.score}${r.components.cpu.estimated ? ' (aproximado)' : ''}`],
+      ['Caché L3', p.cpu.cache?.l3 ? `${Math.round(p.cpu.cache.l3 / 1024 / 1024)} MB` : null, true],
+      ['Índice estimado', `${r.components.cpu.score}${r.components.cpu.estimated ? ' (aproximado)' : ''}`, true],
     ]))}
     ${block('board', table([
       ['Fabricante', p.board.manufacturer],
       ['Modelo', p.board.model],
       ['Chipset', r.components.board.chipset?.id || 'No identificado'],
       ['Socket', r.components.board.platform?.socket],
-      ['BIOS', `${p.bios.vendor || ''} ${p.bios.version || ''} (${p.bios.releaseDate || '—'})`],
+      ['BIOS', `${p.bios.vendor || ''} ${p.bios.version || ''} (${p.bios.releaseDate || '—'})`, true],
       ['Ranuras de RAM', ram.slots],
       ['RAM máxima', ram.maxGb ? `${ram.maxGb} GB` : null],
     ]))}
@@ -551,24 +637,36 @@ function renderComponents() {
       ['Fabricante', g.vendor],
       ['VRAM', g.vramGb ? `${g.vramGb} GB` : 'Compartida'],
       ['Tipo', g.integrated ? 'Integrada' : 'Dedicada'],
-      ['Enlace PCIe actual', g.pcie?.curWidth ? `Gen ${g.pcie.curGen} x${g.pcie.curWidth}` : null],
-      ['Enlace PCIe máximo', g.pcie?.maxWidth ? `Gen ${g.pcie.maxGen} x${g.pcie.maxWidth}` : null],
-      ['Driver', g.driverVersion],
-      ['Índice estimado', g.score],
+      ['Enlace PCIe actual', g.pcie?.curWidth ? `Gen ${g.pcie.curGen} x${g.pcie.curWidth}` : null, true],
+      ['Enlace PCIe máximo', g.pcie?.maxWidth ? `Gen ${g.pcie.maxGen} x${g.pcie.maxWidth}` : null, true],
+      ['Ensambladora', g.maker, true],
+      ['Driver', g.driverVersion, true],
+      ['Índice estimado', g.score, true],
     ]))).join('')}
     ${block('ram', `${table([
       ['Total', `${ram.totalGb} GB ${ram.type || ''}`],
       ['Velocidad actual', ram.configured ? `${ram.configured} MT/s` : null],
-      ['Velocidad nominal (XMP/EXPO)', ram.ratedSpeed ? `${ram.ratedSpeed} MT/s` : 'No determinada'],
+      ['Velocidad nominal (XMP/EXPO)', ram.ratedSpeed ? `${ram.ratedSpeed} MT/s` : 'No determinada', true],
       ['Canal', { dual: 'Doble canal', 'dual-probable': 'Doble canal (probable)', single: 'Canal simple' }[ram.channel] || '—'],
-    ])}<table style="margin-top:10px"><tr><th>Ranura</th><th>Capacidad</th><th>Velocidad</th><th>Fabricante</th><th>Número de parte</th></tr>${p.ram.modules.map((m) => `<tr><td>${esc(m.locator)}</td><td>${gb(m.size)}</td><td>${esc(m.configuredSpeed)} MT/s</td><td>${esc(m.manufacturer)}</td><td class="num">${esc(m.partNum)}</td></tr>`).join('')}</table>`)}
+    ])}<table class="dev-only" style="margin-top:10px"><tr><th>Ranura</th><th>Capacidad</th><th>Velocidad</th><th>Fabricante</th><th>Número de parte</th></tr>${p.ram.modules.map((m) => `<tr><td>${esc(m.locator)}</td><td>${gb(m.size)}</td><td>${esc(m.configuredSpeed)} MT/s</td><td>${esc(m.manufacturer)}</td><td class="num">${esc(m.partNum)}</td></tr>`).join('')}</table>`)}
     ${block('storage', `<table><tr><th>Disco</th><th>Tipo</th><th>Interfaz</th><th>Capacidad</th><th></th></tr>${p.disks.map((d) => `<tr><td>${esc(d.name)}</td><td>${esc(d.type || '—')}</td><td>${esc(d.bus || '—')}</td><td>${gb(d.size)}</td><td>${d.isSystem ? 'Sistema' : ''}</td></tr>`).join('')}</table>`)}
     ${block('system', table([
-      ['Sistema operativo', `${p.os.distro} ${p.os.release} (build ${p.os.build})`],
+      ['Sistema operativo', `${p.os.distro} ${p.os.release}`],
+      ['Build', p.os.build, true],
+      ['Tipo de equipo', `${p.system.chassis || '—'}${r.laptop ? ' (portátil)' : ''}`, true],
       ['Arquitectura', p.os.arch],
       ['Plan de energía', p.power?.name],
       ['Pantallas', p.displays.map((d) => `${d.resolutionX}×${d.resolutionY} @ ${d.refreshRate || '?'} Hz`).join(' · ')],
-    ]))}`;
+    ]))}
+    <div class="card spec-card dev-only"><div class="head">${svg('<path d="M4 6h16M4 12h16M4 18h10"/>')}<h3 style="margin:0">Origen de los datos</h3></div>${table([
+      ['Procesador', 'systeminformation (WMI Win32_Processor) · índice por generación y gama en hardware.js'],
+      ['Placa y BIOS', 'WMI Win32_BaseBoard / Win32_BIOS · chipset deducido del nombre del modelo'],
+      ['Tarjeta de video', 'systeminformation + Windows PnP (enlace PCIe y ensambladora por SUBSYS) · índice en gpus.json'],
+      ['Memoria RAM', 'WMI Win32_PhysicalMemory (velocidad, ranura, número de parte) · nominal deducida del número de parte'],
+      ['Discos', 'Get-PhysicalDisk y Get-Partition (disco del sistema)'],
+      ['Base de datos', `${r.db.gpus} tarjetas de video · ${r.db.chipsets} chipsets (src/data)`],
+      ['Datos no leídos', r.dataIssues.length ? r.dataIssues.map((i) => i.text).join(' · ') : 'ninguno'],
+    ])}</div>`;
 }
 
 // ---------------- Perfiles de preferencias ----------------

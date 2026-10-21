@@ -111,6 +111,8 @@ src/
     engine.js        reglas, severidades y consejos
     upgrade.js       planificador de la próxima mejora
     profile-match.js comparación entre el equipo actual y el perfil
+    checks.js        lista «Verifica antes de comprar»
+    explain.js       versión simple y evidencia técnica de cada hallazgo
   data/        base de datos editable
     gpus.json        GPUs: puntaje, PCIe, carriles y VRAM
     platforms.json   chipsets y plataformas: PCIe, socket, techo y mejores CPUs
@@ -132,6 +134,22 @@ test/          pruebas con node:test
 1. Sube la versión en `package.json`.
 2. Crea una etiqueta: `git tag v1.4.0 && git push --tags`.
 3. GitHub Actions ejecuta las pruebas, compila `HardScope-Setup.exe` y `HardScope-Portable.exe` y los publica en Releases. Los enlaces de *Descarga directa* apuntan solos a la nueva versión, y la app avisa desde *Acerca de → Buscar actualizaciones*.
+
+## Vista Simple y vista Developer
+
+Arriba a la derecha hay un selector **Simple / Developer** que se recuerda entre sesiones. Los dos modos muestran **los mismos resultados**; solo cambia el nivel de detalle:
+
+| | Simple (por defecto) | Developer |
+|---|---|---|
+| Lenguaje | Cotidiano, sin siglas ni índices: *"Tu memoria RAM funciona más lenta de lo que puede"* | Técnico: *"La RAM no va a su velocidad: 4800 de 5200 MT/s"* |
+| Diagnóstico | Lo importante primero; "lo que está bien" plegado; explicación técnica desplegable | Cada hallazgo con su **evidencia**: índices, relación, umbrales, origen del dato e id |
+| Resumen | Componentes e índice del equipo | Además, índice de cada componente, plataforma, enlace PCIe y el cálculo del índice |
+| Placa vs GPU | La conclusión en una frase | Escala de índices, carriles PCIe y comparación CPU/GPU |
+| Próxima mejora | El cambio, cuánto mejora y lo esencial de la comparación | Tabla completa, índices antes/después y criterio de selección |
+| Monitor en vivo | CPU, GPU, RAM y temperatura | Además, núcleo más cargado, VRAM, gráfico y carga por hilo |
+| Componentes | Inventario básico | Todo: PCIe, BIOS, números de parte, ranuras y origen de cada dato |
+
+En ningún modo se ocultan avisos ni la lista "Verifica antes de comprar".
 
 ## Cómo interpretar los resultados
 

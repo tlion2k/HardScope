@@ -229,3 +229,16 @@ test('fase 2: se puede elegir qué tarjeta analizar cuando hay varias', () => {
   assert.equal(analyze(two).components.gpu.name, 'NVIDIA GeForce RTX 4070 SUPER');
   assert.equal(analyze(two, { primaryGpu: 'NVIDIA GeForce GTX 1650' }).components.gpu.name, 'NVIDIA GeForce GTX 1650');
 });
+test('fase 3: cada hallazgo trae versión simple y, los comparativos, evidencia técnica', () => {
+  const r = analyze(profile({ cpu: { brand: 'AMD Ryzen 5 3600', cores: 12, physicalCores: 6 }, gpus: [{ name: 'NVIDIA GeForce RTX 4070 SUPER', vram: 12288 }] }));
+  for (const f of r.findings) {
+    assert.ok(f.plain?.title, `sin título simple: ${f.id}`);
+    assert.ok(Array.isArray(f.evidence), `sin evidencia: ${f.id}`);
+  }
+  const cpu = r.findings.find((f) => f.id === 'cpu-bottleneck');
+  assert.doesNotMatch(cpu.plain.title, /\d/, 'el título simple no lleva números');
+  const ev = Object.fromEntries(cpu.evidence);
+  assert.equal(ev['Relación GPU/CPU'], String(r.balance.cpuVsGpu.ratio));
+  assert.match(ev['Umbrales'], /1,60/);
+  assert.doesNotMatch(r.findings.find((f) => f.id === 'gpu-weak-vs-cpu' || f.id === 'board-superior')?.plain.action || '', /≈/);
+});
