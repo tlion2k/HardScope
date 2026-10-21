@@ -2,11 +2,10 @@
 //  - errors: datos que rompen el análisis (deben corregirse antes de publicar).
 //  - warnings: datos dudosos o desactualizados (conviene revisarlos).
 const hw = require('./hardware');
-const defaults = {
-  gpuData: require('../data/gpus.json'),
-  platformData: require('../data/platforms.json'),
-  brands: require('../data/brands.json'),
-};
+// Por defecto se valida el catálogo incluido en el repositorio (no una copia descargada).
+const catalog = require('./catalog');
+const bundled = catalog.readSet(catalog.BUNDLED_DIR);
+const defaults = { gpuData: bundled.gpus, platformData: bundled.platforms, brands: bundled.brands, gpusExtra: bundled.gpusExtra, cpusBlender: bundled.cpusBlender };
 
 const CONF = ['alta', 'media', 'baja'];
 const SEGMENTS = ['entry', 'mainstream', 'enthusiast'];
@@ -34,7 +33,15 @@ function checkMeta(name, meta, errors, warnings, now) {
 }
 
 // Se pueden pasar catálogos alternativos (las pruebas lo usan para comprobar que detecta errores).
-function validate({ now = new Date(), gpuData = defaults.gpuData, platformData = defaults.platformData, brands = defaults.brands } = {}) {
+function validate({
+  now = new Date(),
+  gpuData = defaults.gpuData,
+  platformData = defaults.platformData,
+  brands = defaults.brands,
+  gpusExtra = defaults.gpusExtra,
+  cpusBlender = defaults.cpusBlender,
+  manifestDir = null, // si se indica, se comprueba que manifest.json coincide con los archivos
+} = {}) {
   const errors = [];
   const warnings = [];
 
@@ -103,6 +110,51 @@ function validate({ now = new Date(), gpuData = defaults.gpuData, platformData =
   for (const [brand, plats] of Object.entries(brands.boards)) {
     for (const key of Object.values(platformData.modern || {}).map((m) => m.platform)) {
       if (!plats[key]?.mainstream || !plats[key]?.enthusiast) errors.push(`boards «${brand}»: faltan modelos de gama media y alta para ${key}.`);
+    }
+  }
+
+  // ---------- Catálogos generados desde fuentes públicas ----------
+  if (gpusExtra?.gpus?.length) {
+    const m = gpusExtra.meta || {};
+    if (m.sources?.blender?.license !== 'CC0 1.0') errors.push('gpus-extra.json: falta la licencia de Blender Open Data (CC0 1.0).');
+    if (m.sources?.openGpuDb?.license !== 'Apache-2.0') errors.push('gpus-extra.json: falta la licencia de open-gpu-db (Apache-2.0).');
+    if (!m.generated || isNaN(new Date(m.generated))) errors.push('gpus-extra.json: "meta.generated" no es una fecha válida.');
+    else if ((now - new Date(m.generated)) / 864e5 > 120) warnings.push(`gpus-extra.json: generado hace más de 120 días (${m.generated}); la tarea mensual podría estar fallando.`);
+    if (m.calibration?.medianError > 15) warnings.push(`gpus-extra.json: el error mediano de la estimación es ${m.calibration.medianError} %.`);
+    const keys = new Set();
+    for (const g of gpusExtra.gpus) {
+      const tag = `GPU ampliada «${g.key}»`;
+      if (!g.key || keys.has(g.key)) errors.push(`${tag}: clave vacía o duplicada.`);
+      keys.add(g.key);
+      if (g.blender != null && !(g.blender > 0 && g.blenderN >= 15)) errors.push(`${tag}: rendimiento de Blender inválido.`);
+      if (g.est != null && !(g.est > 0 && g.est < 250)) errors.push(`${tag}: índice estimado fuera de rango.`);
+      if (g.pcie != null && ![1, 2, 3, 4, 5].includes(g.pcie)) errors.push(`${tag}: "pcie" inválido.`);
+      if (g.vram != null && !(g.vram >= 0 && g.vram <= 256)) errors.push(`${tag}: "vram" fuera de rango.`);
+    }
+  }
+  if (cpusBlender?.cpus?.length) {
+    const keys = new Set();
+    for (const c of cpusBlender.cpus) {
+      if (!c.key || keys.has(c.key)) errors.push(`CPU medida «${c.key}»: clave vacía o duplicada.`);
+      keys.add(c.key);
+      if (!(c.blender > 0)) errors.push(`CPU medida «${c.key}»: rendimiento inválido.`);
+    }
+  }
+
+  // ---------- Manifiesto (lo que la app usa para descargar y verificar el catálogo) ----------
+  if (manifestDir) {
+    const crypto = require('crypto');
+    const fs = require('fs');
+    const path = require('path');
+    const manifest = catalog.readManifest(manifestDir);
+    if (!manifest) errors.push('manifest.json: no existe. Ejecuta npm run build-manifest.');
+    else {
+      for (const file of Object.values(catalog.FILES)) {
+        const full = path.join(manifestDir, file);
+        if (!fs.existsSync(full)) continue;
+        const sha = crypto.createHash('sha256').update(fs.readFileSync(full)).digest('hex');
+        if (manifest.files?.[file]?.sha256 !== sha) errors.push(`manifest.json: la huella de ${file} no coincide. Ejecuta npm run build-manifest.`);
+      }
     }
   }
 

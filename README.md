@@ -123,12 +123,42 @@ scripts/
   validate-data.js   validador de los catálogos (npm run validate)
   format-data.js     formato de los catálogos, una línea por entrada
   capture-fixture.js captura anonimizada del inventario del PC (npm run fixture)
+  import-external.js Blender Open Data + open-gpu-db → src/data/generated
+  build-manifest.js  versión y huellas del catálogo (src/data/manifest.json)
 test/
   engine.test.js     reglas, planificador y perfiles
   fixtures.test.js   análisis sobre inventarios completos
   data.test.js       validador de catálogos
   fixtures/          inventarios: 1 real anonimizado y 5 sintéticos
 ```
+
+### Datos públicos que se actualizan solos
+
+Además del catálogo revisado a mano, HardScope usa dos fuentes públicas:
+
+| Fuente | Qué aporta | Licencia |
+|---|---|---|
+| [Blender Open Data](https://opendata.blender.org/) | Rendimiento **medido** en render de más de 240 tarjetas y 880 procesadores, a partir de cientos de miles de resultados reales | CC0 |
+| [open-gpu-db](https://github.com/onepunk/open-gpu-db) | Especificaciones de casi 1000 tarjetas: VRAM, PCIe, consumo (TDP), año | Apache-2.0 |
+
+Con eso, la app:
+
+- **Reconoce tarjetas que no están en el catálogo manual** y estima su índice de juegos con el resultado medido en Blender, calibrado con las tarjetas conocidas por generación y backend (OptiX, CUDA o HIP). El error se mide dejando cada tarjeta fuera de su propia calibración y se publica en el catálogo (hoy: mediana ≈ 5 %, el 10 % peor ≥ 17 %). Estas tarjetas aparecen con confianza baja.
+- Usa la relación medida **portátil / escritorio** de cada modelo en vez de una regla fija.
+- Muestra en *Próxima mejora* el consumo de cada tarjeta y su render medido, y en el uso **Creación** el rendimiento en render comparado con el resto.
+
+**Cómo se mantiene sin trabajo manual:**
+
+1. **GitHub hace el trabajo pesado.** La tarea [`Actualizar catálogo`](.github/workflows/update-catalog.yml) corre el día 1 de cada mes (o a mano desde *Actions*): descarga los datos (~100 MB comprimidos, ~1,8 GB descomprimidos), genera `src/data/generated/` (≈ 300 KB), regenera el manifiesto, valida y ejecuta las pruebas. Sólo si todo pasa lo publica en `main`.
+2. **La app se actualiza sola.** Al abrirse consulta `src/data/manifest.json` en GitHub; si hay una versión más nueva descarga los archivos, comprueba su huella SHA-256 y los valida antes de guardarlos. Se aplica al reiniciar. Si no hay internet o algo falla, sigue con el catálogo incluido. Se puede desactivar en *Acerca de*.
+
+Para regenerarlo en local:
+
+```bash
+npm run build-manifest
+```
+
+(los datos de Blender se procesan con `scripts/import-external.js`; ver el comentario al inicio del archivo). Las licencias y atribuciones están en [`src/data/generated/NOTICE.md`](src/data/generated/NOTICE.md).
 
 ### Base de datos: procedencia y validación
 

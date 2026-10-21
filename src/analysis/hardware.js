@@ -1,13 +1,19 @@
-﻿// IdentificaciÃ³n de componentes contra la base de datos local y cÃ¡lculo de puntajes.
+﻿// Identificación de componentes contra la base de datos local y cálculo de puntajes.
 // Todo en la misma escala: "puntaje de GPU" (RTX 4090 = 100 a 1440p).
-const gpuData = require('../data/gpus.json');
-const platformData = require('../data/platforms.json');
+const catalog = require('./catalog');
+const gpuData = catalog.gpus;
+const platformData = catalog.platforms;
 const gpuDb = gpuData.gpus;
 const { platforms, chipsets } = platformData;
+// Catálogo ampliado generado desde fuentes públicas (scripts/import-external.js).
+const extraByKey = new Map(catalog.gpusExtra.gpus.map((g) => [g.key, g]));
+const cpuBlenderByKey = new Map(catalog.cpusBlender.cpus.map((c) => [c.key, c]));
 // Versión y fecha de cada catálogo, para mostrar de dónde sale cada índice.
 const dataInfo = {
   gpus: { version: gpuData.meta.version, updated: gpuData.meta.updated, count: gpuDb.length, source: gpuData.meta.sources[gpuData.meta.defaults.src] },
   platforms: { version: platformData.meta.version, updated: platformData.meta.updated, count: Object.keys(chipsets).length },
+  extra: { count: extraByKey.size, measured: catalog.gpusExtra.gpus.filter((g) => g.blender).length, cpus: cpuBlenderByKey.size, ...catalog.gpusExtra.meta },
+  catalog: { version: catalog.manifest?.version ?? null, origin: catalog.origin },
 };
 
 const PCIE_LANE_GBPS = { 1: 0.25, 2: 0.5, 3: 0.985, 4: 1.969, 5: 3.938 };
@@ -15,13 +21,34 @@ const PCIE_LANE_GBPS = { 1: 0.25, 2: 0.5, 3: 0.985, 4: 1.969, 5: 3.938 };
 function normalizeGpuName(name = '') {
   return name
     .toLowerCase()
-    .replace(/\(r\)|\(tm\)|Â®|â„¢/g, ' ')
+    .replace(/\(r\)|\(tm\)|®|™/g, ' ')
     .replace(/\b(nvidia|geforce|amd|ati|intel|corporation)\b|radeon(?=\s+rx)/g, ' ')
     .replace(/\b(laptop gpu|mobile|max-q)\b/g, ' laptop ')
     .replace(/[^a-z0-9 ]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+// Clave común para cruzar nombres entre fuentes ("GeForce RTX 5060 Ti 16 GB" -> "rtx 5060 ti").
+function gpuKey(name) {
+  return normalizeGpuName(name)
+    .replace(/\b\d+\s?gb\b/g, ' ')
+    .replace(/\b(founders edition|oem|series)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function cpuKey(name) {
+  return String(name)
+    .replace(/\(r\)|\(tm\)|®|™/gi, ' ')
+    .replace(/\b\d+-core processor\b|\bprocessor\b|\bcpu\b|@\s*[\d.]+\s*ghz/gi, ' ')
+    .replace(/\b(intel|amd)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+const measured = (e) => (e?.blender ? { score: e.blender, n: e.blenderN, backend: e.backend } : null);
 
 function identifyGpu(name) {
   const norm = normalizeGpuName(name);
@@ -30,9 +57,44 @@ function identifyGpu(name) {
     const re = new RegExp(`(^|\\s)${g.id.replace(/\s+/g, '\\s')}(\\s|$)`);
     if (re.test(norm) && (!best || g.id.length > best.id.length)) best = g;
   }
-  if (!best) return null;
   const laptop = /\blaptop\b/.test(norm);
-  return { ...best, conf: best.conf || gpuData.meta.defaults.conf, laptop, score: laptop ? +(best.score * 0.8).toFixed(1) : best.score };
+  if (best) {
+    const desk = extraByKey.get(best.id);
+    const mobile = laptop ? extraByKey.get(`${best.id} laptop`) : null;
+    // En portátiles se usa la relación medida en Blender (portátil / escritorio) si existe;
+    // si no, la regla general de 0,8.
+    const ratio = mobile?.blender && desk?.blender ? Math.min(1.1, Math.max(0.4, mobile.blender / desk.blender)) : null;
+    const score = laptop ? +(best.score * (ratio ?? 0.8)).toFixed(1) : best.score;
+    return {
+      ...best,
+      conf: best.conf || gpuData.meta.defaults.conf,
+      laptop,
+      laptopRatio: laptop ? { value: +(ratio ?? 0.8).toFixed(2), source: ratio ? 'blender' : 'regla general' } : null,
+      score,
+      tdp: laptop ? null : desk?.tdp ?? null,
+      blender: measured(laptop ? mobile : desk),
+      origin: 'curated',
+    };
+  }
+  // No está en el catálogo curado: se busca en el catálogo ampliado (open-gpu-db + Blender).
+  const ext = extraByKey.get(gpuKey(name));
+  if (!ext) return null;
+  return {
+    id: ext.key,
+    name: ext.name,
+    score: ext.est ?? null,
+    pcie: ext.pcie,
+    lanes: ext.lanes,
+    vram: ext.vram,
+    year: ext.year,
+    tdp: ext.tdp,
+    integrated: false,
+    conf: 'baja',
+    laptop,
+    blender: measured(ext),
+    vendor: ext.vendor,
+    origin: ext.est != null ? 'estimated' : 'specs',
+  };
 }
 
 function identifyChipset(boardModel = '') {
@@ -50,7 +112,7 @@ function identifyChipset(boardModel = '') {
 }
 
 // --- CPU ---------------------------------------------------------------
-// Base = puntaje de alimentaciÃ³n para un modelo de gama media (i5 / Ryzen 5) de esa generaciÃ³n.
+// Base = puntaje de alimentación para un modelo de gama media (i5 / Ryzen 5) de esa generación.
 const INTEL_GEN_BASE = { 2: 14, 3: 16, 4: 20, 5: 21, 6: 25, 7: 28, 8: 35, 9: 38, 10: 45, 11: 52, 12: 75, 13: 92, 14: 95 };
 const AMD_SERIES_BASE = { 1: 22, 2: 28, 3: 45, 4: 45, 5: 65, 7: 95, 8: 75, 9: 105 };
 const INTEL_TIER = { 3: 0.8, 5: 1.0, 7: 1.1, 9: 1.15 };
@@ -69,7 +131,7 @@ function identifyCpu(brand = '', cores = 0, threads = 0, ghz = 0) {
     gen = num.length === 5 ? +num.slice(0, 2) : +num[0];
     const suffix = m[3].toUpperCase();
     score = (INTEL_GEN_BASE[gen] ?? 20) * (INTEL_TIER[tier] ?? 1);
-    if (tier === 3 && gen < 8) score *= 0.8; // i3 de 2 nÃºcleos
+    if (tier === 3 && gen < 8) score *= 0.8; // i3 de 2 núcleos
     if (suffix.includes('K')) score *= 1.05;
     if (/^(U|Y)/.test(suffix)) score *= 0.6;
     else if (/^H/.test(suffix)) score *= 0.85;
@@ -100,12 +162,12 @@ function identifyCpu(brand = '', cores = 0, threads = 0, ghz = 0) {
 
   let estimated = false;
   if (score == null) {
-    // Respaldo genÃ©rico: nÃºcleos y frecuencia.
+    // Respaldo genérico: núcleos y frecuencia.
     estimated = true;
     const c = Math.max(1, cores);
     score = Math.min(110, Math.max(5, ghz * 8 * Math.min(c, 8) ** 0.55 * (threads > cores ? 1.1 : 1)));
   }
-  return { name, family, score: +score.toFixed(1), estimated };
+  return { name, family, score: +score.toFixed(1), estimated, blender: cpuBlender(name) };
 }
 
 function intelSocketForGen(gen) {
@@ -120,7 +182,7 @@ function intelSocketForGen(gen) {
 }
 
 // --- RAM ---------------------------------------------------------------
-// Velocidad nominal (XMP/EXPO) a partir del nÃºmero de parte del mÃ³dulo.
+// Velocidad nominal (XMP/EXPO) a partir del número de parte del módulo.
 function ratedSpeedFromPart(part = '') {
   const p = part.toUpperCase().replace(/\s+/g, '');
   const patterns = [
@@ -145,7 +207,14 @@ function pcieBandwidth(gen, lanes) {
   return (PCIE_LANE_GBPS[gen] ?? 0) * lanes;
 }
 
+// Rendimiento en render de CPU medido por la comunidad (Blender Open Data), si existe.
+function cpuBlender(name) {
+  const e = cpuBlenderByKey.get(cpuKey(name));
+  return e ? { score: e.blender, n: e.blenderN } : null;
+}
+
 function gpuVendor(g) {
+  if (g.vendor) return g.vendor;
   if (/^(rtx|gtx|gt)\s/.test(g.id)) return 'NVIDIA';
   if (/^(rx|radeon)\s/.test(g.id)) return 'AMD';
   if (/^(arc|iris|uhd|hd)\s/.test(g.id)) return 'Intel';
@@ -176,6 +245,10 @@ module.exports = {
   platforms,
   chipsets,
   normalizeGpuName,
+  gpuKey,
+  cpuKey,
+  extraByKey,
+  catalog,
   identifyGpu,
   identifyChipset,
   identifyCpu,
@@ -185,7 +258,7 @@ module.exports = {
   suggestGpus,
   gpuVendor,
   psuWatts,
-  brands: require('../data/brands.json'),
+  brands: catalog.brands,
   dataInfo,
   gpuMeta: gpuData.meta,
   platformMeta: platformData.meta,

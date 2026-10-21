@@ -1,6 +1,11 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
+// Debe fijarse antes de cargar el motor: indica dónde buscar un catálogo descargado más nuevo.
+const CATALOG_DIR = path.join(app.getPath('userData'), 'catalog');
+process.env.HARDSCOPE_CATALOG_DIR = CATALOG_DIR;
+const catalog = require('../analysis/catalog');
+const { checkCatalog } = require('./catalog-update');
 const { collect } = require('./collector');
 const { LiveMonitor } = require('./monitor');
 const profiles = require('./profiles');
@@ -89,7 +94,39 @@ ipcMain.handle('profiles:load', () => profiles.load());
 ipcMain.handle('profiles:save', (_e, p) => profiles.save(p));
 ipcMain.handle('profiles:remove', (_e, id) => profiles.remove(id));
 ipcMain.handle('profiles:activate', (_e, id) => profiles.activate(id));
-ipcMain.handle('brands', () => require('../data/brands.json'));
+ipcMain.handle('brands', () => catalog.brands);
+
+// ---------- Catálogo de datos ----------
+const catalogInfo = () => {
+  const extra = catalog.gpusExtra.meta || {};
+  return {
+    version: catalog.manifest?.version ?? null,
+    origin: catalog.origin,
+    curated: catalog.gpus.gpus.length,
+    extra: catalog.gpusExtra.gpus.length,
+    measured: catalog.gpusExtra.gpus.filter((g) => g.blender).length,
+    cpus: catalog.cpusBlender.cpus.length,
+    snapshot: extra.sources?.blender?.snapshot || null,
+    calibration: extra.calibration || null,
+    sources: extra.sources || null,
+  };
+};
+let pendingCatalog = null; // versión descargada que se aplicará al reiniciar
+ipcMain.handle('catalog:info', () => ({ ...catalogInfo(), pending: pendingCatalog }));
+ipcMain.handle('catalog:check', async () => {
+  try {
+    const res = await checkCatalog({ repo: pkg.hardscope?.repo, current: catalog.manifest, targetDir: CATALOG_DIR, appVersion: pkg.version });
+    if (res.status === 'updated') pendingCatalog = res.version;
+    return res;
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  }
+});
+ipcMain.handle('app:relaunch', () => {
+  monitor.stop();
+  app.relaunch();
+  app.exit(0);
+});
 
 ipcMain.handle('app:info', () => ({ version: pkg.version, repo: pkg.hardscope?.repo || null }));
 

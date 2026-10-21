@@ -1,0 +1,206 @@
+{
+  "package.json": {
+    "mtime": 1792603136.0909452,
+    "seen": 1792618509.7601194,
+    "ast_hash": "fc47d6c00eaa656d46c41cf1fbf26bcf",
+    "semantic_hash": "fc47d6c00eaa656d46c41cf1fbf26bcf"
+  },
+  "scripts/capture-fixture.js": {
+    "mtime": 1792602934.6322412,
+    "seen": 1792618509.7601194,
+    "ast_hash": "642199cc8e250be6be2160b92adf22df",
+    "semantic_hash": "642199cc8e250be6be2160b92adf22df"
+  },
+  "scripts/format-data.js": {
+    "mtime": 1792602816.7819185,
+    "seen": 1792618509.7601194,
+    "ast_hash": "7f9290de6c0cf72eb029e714d8c20d69",
+    "semantic_hash": "7f9290de6c0cf72eb029e714d8c20d69"
+  },
+  "scripts/setup.ps1": {
+    "mtime": 1792598694.53231,
+    "seen": 1792618509.7601194,
+    "ast_hash": "f96a7de8ddcbe02f6a7d9aa61d21d906",
+    "semantic_hash": "f96a7de8ddcbe02f6a7d9aa61d21d906"
+  },
+  "scripts/validate-data.js": {
+    "mtime": 1792602891.9493651,
+    "seen": 1792618509.7601194,
+    "ast_hash": "3f100d06dfd4eeb5d882f4fdc0bdf748",
+    "semantic_hash": "3f100d06dfd4eeb5d882f4fdc0bdf748"
+  },
+  "src/analysis/checks.js": {
+    "mtime": 1792601148.3050766,
+    "seen": 1792618509.7601194,
+    "ast_hash": "c4d1a09637b5c922a65e1a5e6610a607",
+    "semantic_hash": "c4d1a09637b5c922a65e1a5e6610a607"
+  },
+  "src/analysis/engine.js": {
+    "mtime": 1792603089.0698519,
+    "seen": 1792618509.7601194,
+    "ast_hash": "87ec361d40db1efbec517a9f0660e876",
+    "semantic_hash": "87ec361d40db1efbec517a9f0660e876"
+  },
+  "src/analysis/explain.js": {
+    "mtime": 1792603089.2023573,
+    "seen": 1792618509.7601194,
+    "ast_hash": "e69e7704a5994e5be1c3d1640683deac",
+    "semantic_hash": "e69e7704a5994e5be1c3d1640683deac"
+  },
+  "src/analysis/hardware.js": {
+    "mtime": 1792602842.7912302,
+    "seen": 1792618509.7601194,
+    "ast_hash": "38f1288a8985355affda9c5f96165a69",
+    "semantic_hash": "38f1288a8985355affda9c5f96165a69"
+  },
+  "src/analysis/profile-match.js": {
+    "mtime": 1792601275.2878208,
+    "seen": 1792618509.7601194,
+    "ast_hash": "30873a6b9d11803ad4387b7ddcd2f83a",
+    "semantic_hash": "30873a6b9d11803ad4387b7ddcd2f83a"
+  },
+  "src/analysis/upgrade.js": {
+    "mtime": 1792601262.352957,
+    "seen": 1792618509.7601194,
+    "ast_hash": "aedf5fcdeff5e9483c2f6872d455c335",
+    "semantic_hash": "aedf5fcdeff5e9483c2f6872d455c335"
+  },
+  "src/analysis/validate-data.js": {
+    "mtime": 1792602917.2616973,
+    "seen": 1792618509.7601194,
+    "ast_hash": "3ce85b3b4f2336d41c1ac45c78e30b53",
+    "semantic_hash": "3ce85b3b4f2336d41c1ac45c78e30b53"
+  },
+  "src/data/brands.json": {
+    "mtime": 1792602817.4136498,
+    "seen": 1792618509.7601194,
+    "ast_hash": "73e4c8a097190ff46f53b28c5cf2367c",
+    "semantic_hash": "73e4c8a097190ff46f53b28c5cf2367c"
+  },
+  "src/data/gpus.json": {
+    "mtime": 1792602817.4121432,
+    "seen": 1792618509.7601194,
+    "ast_hash": "57417cf3da9c9cc1642faff9c57f12d7",
+    "semantic_hash": "57417cf3da9c9cc1642faff9c57f12d7"
+  },
+  "src/data/platforms.json": {
+    "mtime": 1792602817.4136498,
+    "seen": 1792618509.7601194,
+    "ast_hash": "0f2b3932c3cdebf79d4e33b948d5807c",
+    "semantic_hash": "0f2b3932c3cdebf79d4e33b948d5807c"
+  },
+  "src/main/collector.js": {
+    "mtime": 1792603039.7290237,
+    "seen": 1792618509.7601194,
+    "ast_hash": "cf8d361ea24d11d78ef6a22d7c8d07a8",
+    "semantic_hash": "cf8d361ea24d11d78ef6a22d7c8d07a8"
+  },
+  "src/main/gpu-monitor.ps1": {
+    "mtime": 1792593178.6714053,
+    "seen": 1792618509.7601194,
+    "ast_hash": "3b66f0bb0fd97d49977e521203cceca4",
+    "semantic_hash": "3b66f0bb0fd97d49977e521203cceca4"
+  },
+  "src/main/main.js": {
+    "mtime": 1792601013.1718576,
+    "seen": 1792618509.7601194,
+    "ast_hash": "427afaee43cc3be38358fd162b2f8b78",
+    "semantic_hash": "427afaee43cc3be38358fd162b2f8b78"
+  },
+  "src/main/monitor.js": {
+    "mtime": 1792601013.8001125,
+    "seen": 1792618509.7601194,
+    "ast_hash": "8000584c6d8325a2c5caf03f3a971c69",
+    "semantic_hash": "8000584c6d8325a2c5caf03f3a971c69"
+  },
+  "src/main/preload.js": {
+    "mtime": 1792594963.3833075,
+    "seen": 1792618509.7601194,
+    "ast_hash": "6b8a5b0749d325b956e479f924e1481d",
+    "semantic_hash": "6b8a5b0749d325b956e479f924e1481d"
+  },
+  "src/main/probe.ps1": {
+    "mtime": 1792597074.8108604,
+    "seen": 1792618509.7601194,
+    "ast_hash": "ea8976fce059f7e4d40bfe42d57feda3",
+    "semantic_hash": "ea8976fce059f7e4d40bfe42d57feda3"
+  },
+  "src/main/profiles.js": {
+    "mtime": 1792594963.0669863,
+    "seen": 1792618509.7601194,
+    "ast_hash": "3ad859dc7608adc45cd9f12fca3a743d",
+    "semantic_hash": "3ad859dc7608adc45cd9f12fca3a743d"
+  },
+  "src/renderer/app.js": {
+    "mtime": 1792602864.6197233,
+    "seen": 1792618509.7601194,
+    "ast_hash": "ae5f0dfb436892dcfa22204080c460ce",
+    "semantic_hash": "ae5f0dfb436892dcfa22204080c460ce"
+  },
+  "src/renderer/chart.js": {
+    "mtime": 1792593326.9691458,
+    "seen": 1792618509.7601194,
+    "ast_hash": "c7e70897af1ea20e5ea9467ed53c8f77",
+    "semantic_hash": "c7e70897af1ea20e5ea9467ed53c8f77"
+  },
+  "src/renderer/report.js": {
+    "mtime": 1792602864.7347703,
+    "seen": 1792618509.7601194,
+    "ast_hash": "6cf562414924ce5640c5951b61af82d4",
+    "semantic_hash": "6cf562414924ce5640c5951b61af82d4"
+  },
+  "test/data.test.js": {
+    "mtime": 1792603071.801194,
+    "seen": 1792618509.7601194,
+    "ast_hash": "41bd7d73058c6399b62a5a774c9ee703",
+    "semantic_hash": "41bd7d73058c6399b62a5a774c9ee703"
+  },
+  "test/engine.test.js": {
+    "mtime": 1792602506.9819074,
+    "seen": 1792618509.7601194,
+    "ast_hash": "749c78f3a872f58e699bf447e74e536f",
+    "semantic_hash": "749c78f3a872f58e699bf447e74e536f"
+  },
+  "test/fixtures.test.js": {
+    "mtime": 1792603071.2454927,
+    "seen": 1792618509.7601194,
+    "ast_hash": "99b8692d1807cd453ac61f745629d092",
+    "semantic_hash": "99b8692d1807cd453ac61f745629d092"
+  },
+  "test/fixtures/am4-b450-legacy.json": {
+    "mtime": 1792603023.585379,
+    "seen": 1792618509.7601194,
+    "ast_hash": "3c600b4f5645f37c2e0f1bf58375e911",
+    "semantic_hash": "3c600b4f5645f37c2e0f1bf58375e911"
+  },
+  "test/fixtures/am5-multi-gpu.json": {
+    "mtime": 1792603040.556589,
+    "seen": 1792618509.7601194,
+    "ast_hash": "f294e0c142abc41d5f0399a0608171b9",
+    "semantic_hash": "f294e0c142abc41d5f0399a0608171b9"
+  },
+  "test/fixtures/desktop-z790-rtx4070s.json": {
+    "mtime": 1792603023.5843766,
+    "seen": 1792618509.7601194,
+    "ast_hash": "2c0c66637e5e8a21348d67c395505bd5",
+    "semantic_hash": "2c0c66637e5e8a21348d67c395505bd5"
+  },
+  "test/fixtures/laptop-rtx4060.json": {
+    "mtime": 1792603023.5843766,
+    "seen": 1792618509.7601194,
+    "ast_hash": "c509557f98148902f50d328169b4bf3d",
+    "semantic_hash": "c509557f98148902f50d328169b4bf3d"
+  },
+  "test/fixtures/oem-dell-i7-8700.json": {
+    "mtime": 1792603089.8228695,
+    "seen": 1792618509.7601194,
+    "ast_hash": "716e893655a9b541c4c112577f97e47e",
+    "semantic_hash": "716e893655a9b541c4c112577f97e47e"
+  },
+  "test/fixtures/partial-data-b660.json": {
+    "mtime": 1792603023.9827404,
+    "seen": 1792618509.7601194,
+    "ast_hash": "f0e288e44370c5849bcbc678f793fcb9",
+    "semantic_hash": "f0e288e44370c5849bcbc678f793fcb9"
+  }
+}

@@ -2,7 +2,7 @@
 // (con opciones equivalentes o superiores) y qué cambios son sólo opcionales.
 const hw = require('./hardware');
 const { gpuChecks, platformChecks } = require('./checks');
-const { modern } = require('../data/platforms.json');
+const { modern } = require('./catalog').platforms;
 
 const BUDGET_TARGET = { economico: 'equivalent', equilibrado: 'superior', maximo: 'superior' };
 const round = (n) => Math.round(n * 10) / 10;

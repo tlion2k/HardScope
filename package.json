@@ -1,15 +1,16 @@
 {
   "name": "hardscope",
   "productName": "HardScope",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Analizador de hardware y cuellos de botella para PC: compara placa madre, tarjeta de video, CPU, RAM y discos, y da consejos de mejora.",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/engine.test.js test/fixtures.test.js test/data.test.js",
+    "test": "node --test test/engine.test.js test/fixtures.test.js test/data.test.js test/catalog.test.js",
     "validate": "node scripts/validate-data.js",
     "fixture": "node scripts/capture-fixture.js",
     "format-data": "node scripts/format-data.js",
+    "build-manifest": "node scripts/build-manifest.js",
     "dist": "electron-builder --win",
     "dist:dir": "electron-builder --win --dir"
   },

@@ -31,6 +31,7 @@ const PLAIN = {
   'gpu-unknown': ['No reconocimos tu tarjeta de video', 'Algunas comparaciones no se pudieron hacer.'],
   'cpu-unknown': ['No reconocimos tu procesador con exactitud', 'Algunos resultados pueden ser menos precisos.'],
   'board-unknown': ['No reconocimos el modelo de tu placa', 'Algunas comparaciones no se pudieron hacer.'],
+  'gpu-estimated': ['Tu tarjeta no está en nuestro catálogo revisado', 'Su rendimiento se estimó con resultados reales de otros usuarios; tómalo como orientativo.'],
   'board-inferred': ['No reconocimos el modelo de tu placa', 'Usamos tu procesador para estimar qué admite; algunos datos de la placa pueden faltar.'],
 };
 
@@ -51,6 +52,7 @@ function plainFor(f) {
       ? ['La memoria de tu tarjeta está justa para la resolución elegida', 'Alcanza hoy, pero algunos juegos nuevos ya piden más.']
       : ['Tu tarjeta de video tiene poca memoria propia', 'En juegos recientes tendrás que bajar la calidad de las texturas.'];
   }
+  if (f.id === 'gpu-render') return [f.title, 'Comparado con resultados reales de miles de usuarios de Blender.'];
   if (f.id === 'ram-size') {
     return f.severity === 'ok' ? [f.title, 'La cantidad de memoria no limita al equipo.'] : [f.title, 'Con más memoria el equipo irá más fluido con varios programas abiertos.'];
   }
@@ -59,7 +61,16 @@ function plainFor(f) {
 
 function annotate(findings, ctx) {
   const { cpuId, gpu, chipset, platformKey, boardVsGpu, cpuVsGpu, pcie, ram, resolution, resFactor } = ctx;
-  const gpuSource = gpu?.match ? `gpus.json · id «${gpu.match.id}»${gpu.match.laptop ? ' (portátil ×0,8)' : ''} · confianza ${gpu.match.conf}` : 'no está en la base de datos';
+  const m = gpu?.match;
+  const laptopNote = m?.laptopRatio ? ` (portátil ×${m.laptopRatio.value}, ${m.laptopRatio.source})` : '';
+  const gpuSource = !m
+    ? 'no está en la base de datos'
+    : m.origin === 'curated'
+      ? `gpus.json · id «${m.id}»${laptopNote} · confianza ${m.conf}`
+      : m.origin === 'estimated'
+        ? `estimado desde Blender Open Data (${m.blender.n} resultados) · catálogo ampliado «${m.id}» · confianza baja`
+        : `sólo especificaciones (open-gpu-db) · sin índice`;
+  const gpuMeasured = m?.blender ? `${m.blender.score} puntos en Blender (mediana de ${m.blender.n} resultados, ${m.blender.backend})` : 'sin resultados en Blender Open Data';
   const cpuSource = cpuId.estimated ? 'estimado por núcleos y frecuencia (modelo no reconocido)' : `base por generación y gama (${cpuId.family?.line || ''} ${cpuId.family?.gen || ''})`.replace(/\s+\)/, ')');
   const res = `${resolution} (factor CPU ×${resFactor})`;
 
@@ -71,6 +82,8 @@ function annotate(findings, ctx) {
       ['Umbrales', THRESHOLDS.cpu],
       ['Origen CPU', cpuSource],
       ['Origen GPU', gpuSource],
+      ['Render medido (GPU)', gpuMeasured],
+      ['Render medido (CPU)', cpuId.blender ? `${cpuId.blender.score} puntos en Blender (mediana de ${cpuId.blender.n} resultados)` : 'sin resultados en Blender Open Data'],
     ],
     board: () => [
       ['Índice plataforma', `${boardVsGpu.ceiling ?? '—'} a ${resolution}`],

@@ -54,6 +54,8 @@ function planUpgrades(ctx) {
     gpuPcie: gpu.pcie?.maxGen || gpu.match?.pcie || null,
     gpuLanes: gpu.pcie?.maxWidth || gpu.match?.lanes || null,
     gpuYear: gpu.match?.year || null,
+    gpuTdp: gpu.match?.tdp ?? null,
+    gpuBlender: gpu.match?.blender?.score ?? null,
     ceiling,
     platformKey,
     platform,
@@ -160,7 +162,7 @@ function gpuStep(s, { vramNeed, prefs }) {
     prefNote,
     checks: gpuChecks(watts),
     psu: psuSeries ? `Fuente recomendada: ≈ ${watts} W 80 Plus Gold (${psuSeries}).` : null, // los vatios ya salen en la comparativa
-    apply: { gpu: pick.score, gpuName: pick.name, gpuVram: pick.vram, gpuPcie: pick.pcie, gpuLanes: pick.lanes, gpuYear: pick.year },
+    apply: { gpu: pick.score, gpuName: pick.name, gpuVram: pick.vram, gpuPcie: pick.pcie, gpuLanes: pick.lanes, gpuYear: pick.year, gpuTdp: hw.extraByKey.get(pick.id)?.tdp ?? null, gpuBlender: hw.extraByKey.get(pick.id)?.blender ?? null },
   };
 }
 
@@ -268,9 +270,12 @@ function buildCompare(kind, a, b, before, after, gainPct) {
       { label: 'Potencia de la tarjeta', before: round(a.gpu), after: round(b.gpu), diff: pct(a.gpu, b.gpu) },
       { label: 'Memoria de video (VRAM)', before: a.gpuVram ? `${a.gpuVram} GB` : '—', after: `${b.gpuVram} GB`, diff: a.gpuVram ? `${b.gpuVram - a.gpuVram >= 0 ? '+' : ''}${round(b.gpuVram - a.gpuVram)} GB` : '' },
       { label: 'Enlace en tu placa', before: link(a), after: link(b) },
-      { label: 'Generación', before: a.gpuYear || '—', after: b.gpuYear },
-      { label: 'Fuente recomendada', before: `≈ ${hw.psuWatts(a.gpu)} W`, after: `≈ ${hw.psuWatts(b.gpu)} W`, diff: hw.psuWatts(b.gpu) > hw.psuWatts(a.gpu) ? 'Revisa tu fuente' : 'Igual' }
+      { label: 'Generación', before: a.gpuYear || '—', after: b.gpuYear }
     );
+    // Datos públicos del catálogo ampliado: consumo (open-gpu-db) y render medido (Blender Open Data).
+    if (a.gpuTdp && b.gpuTdp) rows.push({ label: 'Consumo de la tarjeta (TDP)', before: `${a.gpuTdp} W`, after: `${b.gpuTdp} W`, diff: `${b.gpuTdp >= a.gpuTdp ? '+' : ''}${b.gpuTdp - a.gpuTdp} W` });
+    if (a.gpuBlender && b.gpuBlender) rows.push({ label: 'Render 3D medido (Blender Open Data)', before: Math.round(a.gpuBlender), after: Math.round(b.gpuBlender), diff: pct(a.gpuBlender, b.gpuBlender) });
+    rows.push({ label: 'Fuente recomendada', before: `≈ ${hw.psuWatts(a.gpu)} W`, after: `≈ ${hw.psuWatts(b.gpu)} W`, diff: hw.psuWatts(b.gpu) > hw.psuWatts(a.gpu) ? 'Revisa tu fuente' : 'Igual' });
   } else if (kind === 'cpu') {
     rows.push(
       { label: 'Procesador', before: a.cpuName, after: b.cpuName },

@@ -622,6 +622,7 @@ function renderComponents() {
       ['Frecuencia base', p.cpu.speed ? `${p.cpu.speed} GHz` : null],
       ['Caché L3', p.cpu.cache?.l3 ? `${Math.round(p.cpu.cache.l3 / 1024 / 1024)} MB` : null, true],
       ['Índice estimado', `${r.components.cpu.score}${r.components.cpu.estimated ? ' (aproximado)' : ''}`, true],
+      ['Render medido (Blender Open Data)', r.components.cpu.blender ? `${r.components.cpu.blender.score} puntos · mediana de ${r.components.cpu.blender.n} resultados` : 'sin resultados', true],
     ]))}
     ${block('board', table([
       ['Fabricante', p.board.manufacturer],
@@ -642,6 +643,9 @@ function renderComponents() {
       ['Ensambladora', g.maker, true],
       ['Driver', g.driverVersion, true],
       ['Índice estimado', g.score, true],
+      ['Origen del índice', { curated: 'catálogo revisado a mano', estimated: 'estimado con Blender Open Data (confianza baja)', specs: 'sólo especificaciones, sin índice' }[g.match?.origin] || 'no reconocida', true],
+      ['Render medido (Blender Open Data)', g.match?.blender ? `${g.match.blender.score} puntos · mediana de ${g.match.blender.n} resultados (${g.match.blender.backend})` : null, true],
+      ['Consumo (TDP)', g.match?.tdp ? `${g.match.tdp} W` : null, true],
     ]))).join('')}
     ${block('ram', `${table([
       ['Total', `${ram.totalGb} GB ${ram.type || ''}`],
@@ -666,6 +670,8 @@ function renderComponents() {
       ['Discos', 'Get-PhysicalDisk y Get-Partition (disco del sistema)'],
       ['Base de datos', `${r.db.gpus} tarjetas de video · ${r.db.chipsets} chipsets · versión ${r.db.version} (actualizada ${r.db.updated})`],
       ['Fuente de los índices', r.db.source],
+      ['Catálogo ampliado', `${r.db.extra.count} GPUs (${r.db.extra.measured} medidas en Blender) · ${r.db.extra.cpus} CPUs medidas · Blender Open Data hasta ${r.db.extra.sources?.blender?.snapshot || '—'} · open-gpu-db`],
+      ['Catálogo en uso', `versión ${r.db.catalog.version ?? '—'} (${r.db.catalog.origin === 'downloaded' ? 'descargado' : 'incluido'})`],
       ['Confianza de tu GPU', r.components.gpu?.match ? `${r.components.gpu.match.conf} (${{ alta: 'contrastado con varias fuentes', media: 'estimación coherente con reseñas públicas', baja: 'pocos datos públicos o modelo reciente' }[r.components.gpu.match.conf]})` : 'sin datos'],
       ['Datos no leídos', r.dataIssues.length ? r.dataIssues.map((i) => i.text).join(' · ') : 'ninguno'],
     ])}</div>`;
@@ -880,33 +886,56 @@ function bindEditor(b) {
 
 // ---------------- Acerca de ----------------
 async function renderAbout() {
-  const info = await api.appInfo();
+  const [info, cat] = await Promise.all([api.appInfo(), api.catalogInfo()]);
+  const fmtVersion = (v) => (v ? String(v).replace(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/, '$1-$2-$3 $4:$5') : '—');
+  const cal = cat.calibration;
   $('#page-about').innerHTML = `
     <div class="page-head"><h1>Acerca de HardScope</h1><p>Versión ${esc(info.version)}</p></div>
     <div class="card about">
       <p>HardScope analiza tu equipo, compara la placa madre con la tarjeta de video y el procesador, y propone mejoras.</p>
       <h3 style="margin-top:18px">Cómo se calculan los resultados</h3>
       <ul class="about-list">
-        <li><b>Índices estimados:</b> cada tarjeta y procesador tiene un índice de referencia (RTX 4090 = 100) en una base de datos local (<span class="num">src/data</span>), aproximado a partir de pruebas públicas. No son FPS ni mediciones de tu equipo.</li>
+        <li><b>Índices estimados:</b> cada tarjeta y procesador tiene un índice de referencia (RTX 4090 = 100). Para ${cat.curated} tarjetas se revisa a mano; para el resto se estima con resultados reales de Blender Open Data. No son FPS ni mediciones de tu equipo.</li>
         <li><b>Límite entre componentes:</b> se compara el índice del procesador (ajustado a la resolución elegida) con el de la tarjeta. Indica una tendencia; el resultado real depende del juego, la configuración y los límites de FPS. Para confirmarlo usa el Monitor en vivo.</li>
         <li><b>Índice del equipo (0-100):</b> parte de 100 y resta por cada aviso según su severidad. Es un resumen orientativo de los avisos, no una medida de rendimiento.</li>
         <li><b>Compatibilidad:</b> se deduce del chipset de la placa. Antes de comprar, confirma siempre la lista de CPUs compatibles y la BIOS en la web del fabricante de tu placa, y el tamaño y la alimentación de la tarjeta.</li>
       </ul>
+      <h3 style="margin-top:18px">Catálogo de datos</h3>
+      <p>Versión <b class="num">${esc(fmtVersion(cat.version))}</b> · ${cat.origin === 'downloaded' ? 'descargado de GitHub' : 'incluido en la app'}${cat.pending ? ` · <span class="tone sev-ok">versión ${esc(fmtVersion(cat.pending))} descargada, se aplica al reiniciar</span>` : ''}</p>
+      <ul class="about-list">
+        <li><b>${cat.extra} tarjetas de video</b> con especificaciones y <b>${cat.measured}</b> con rendimiento medido; <b>${cat.cpus}</b> procesadores medidos.</li>
+        <li><b>Blender Open Data</b> (licencia CC0): resultados reales de render enviados por la comunidad${cat.snapshot ? `, hasta el ${esc(cat.snapshot)}` : ''}. <a data-url="https://opendata.blender.org/">opendata.blender.org</a></li>
+        <li><b>open-gpu-db</b> (licencia Apache-2.0, basado en dbgpu): especificaciones de tarjetas (VRAM, PCIe, consumo, año). <a data-url="https://github.com/onepunk/open-gpu-db">github.com/onepunk/open-gpu-db</a></li>
+        ${cal ? `<li><b>Estimación del índice de juegos</b> para tarjetas no revisadas: error típico ${cal.medianError} % (el 10 % peor, ${cal.p90Error} % o más), medido con ${cal.samples} tarjetas conocidas.</li>` : ''}
+      </ul>
+      <label class="toggle"><input type="checkbox" id="autoCatalog" ${state.settings.autoCatalog !== false ? 'checked' : ''}> Buscar un catálogo más nuevo al abrir la app</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn ghost" id="catBtn">Actualizar catálogo ahora</button>
+        ${cat.pending ? '<button class="btn primary" id="relaunchBtn">Reiniciar para aplicar</button>' : ''}
+        <span id="catMsg" style="color:var(--muted)"></span>
+      </div>
       <h3 style="margin-top:18px">Privacidad</h3>
-      <p>Todo el análisis se hace en tu equipo. Los perfiles se guardan solo en tu PC. La única conexión a internet es la consulta de nuevas versiones en GitHub, cuando pulsas el botón.</p>
+      <p>Todo el análisis se hace en tu equipo y no se envía ningún dato tuyo. Los perfiles se guardan solo en tu PC. Las conexiones a internet son de descarga: el catálogo de datos desde el repositorio de HardScope en GitHub (al abrir, si está activado) y la consulta de nuevas versiones, cuando pulsas el botón.</p>
       <label class="toggle"><input type="checkbox" id="hostToggle" ${state.settings.includeHost ? 'checked' : ''}> Incluir el nombre del equipo en los reportes exportados</label>
-      <p class="muted" style="font-size:12.5px">«Buscar actualizaciones» solo avisa si hay una versión nueva; la descarga e instalación las haces tú.</p>
+      <p class="muted" style="font-size:12.5px">«Buscar actualizaciones» solo avisa si hay una versión nueva de la app; la descarga e instalación las haces tú. El catálogo de datos sí se actualiza solo, y se verifica antes de usarlo.</p>
       <div style="display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap">
         <button class="btn primary" id="updBtn">Buscar actualizaciones</button>
         ${info.repo ? `<button class="btn ghost" id="repoBtn">Ver en GitHub</button>` : ''}
         <span id="updMsg" style="color:var(--muted)"></span>
       </div>
     </div>`;
+  $('#page-about').querySelectorAll('a[data-url]').forEach((a) => a.addEventListener('click', () => api.openExternal(a.dataset.url)));
   $('#repoBtn')?.addEventListener('click', () => api.openExternal(`https://github.com/${info.repo}`));
   $('#hostToggle').addEventListener('change', (e) => {
     state.settings.includeHost = e.target.checked;
     saveSettings();
   });
+  $('#autoCatalog').addEventListener('change', (e) => {
+    state.settings.autoCatalog = e.target.checked;
+    saveSettings();
+  });
+  $('#catBtn').addEventListener('click', () => updateCatalog(true));
+  $('#relaunchBtn')?.addEventListener('click', () => api.relaunch());
   $('#updBtn').addEventListener('click', async () => {
     $('#updMsg').textContent = 'Consultando…';
     const u = await api.checkUpdate();
@@ -918,8 +947,29 @@ async function renderAbout() {
   });
 }
 
+// Busca un catálogo más nuevo en GitHub. Si se descarga, se aplica al reiniciar.
+async function updateCatalog(manual) {
+  const msg = $('#catMsg');
+  if (manual && msg) msg.textContent = 'Consultando…';
+  const res = await api.checkCatalog();
+  const text = {
+    updated: 'Catálogo nuevo descargado y verificado. Se aplicará al reiniciar la app.',
+    'up-to-date': 'El catálogo ya está al día.',
+    'needs-app': res.message,
+    incompatible: res.message,
+    error: `No se pudo actualizar el catálogo: ${res.message}`,
+  }[res.status];
+  if (res.status === 'updated') {
+    flash('Catálogo de datos actualizado: se aplicará al reiniciar');
+    renderAbout();
+  } else if (manual && msg) msg.textContent = text;
+}
+
 renderAbout();
 // Si los perfiles no cargan se sigue con la vista global: el análisis no debe quedar bloqueado.
 initProfiles()
   .catch(() => flash('No se pudieron cargar los perfiles; se usa la vista global'))
-  .finally(scan);
+  .finally(async () => {
+    await scan();
+    if (state.settings.autoCatalog !== false) updateCatalog(false).catch(() => {});
+  });

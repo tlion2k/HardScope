@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "version": 202610212152,
+  "generated": "2026-10-21T21:52:38.153Z",
+  "minApp": "1.7.0",
+  "files": {
+    "gpus.json": {
+      "sha256": "c874c5680ef98a47594220b6cfca66ca7fe7845cdd7cf008617381b02bbeb499",
+      "bytes": 13559
+    },
+    "platforms.json": {
+      "sha256": "0f481ae8166460bf14011618df4113c473d355d0a76591c0bbf2e83902d01044",
+      "bytes": 8977
+    },
+    "brands.json": {
+      "sha256": "96ff7fcfe87a5d053081fe419c04384396714e447d0d6a5c029dc0f2b446aa59",
+      "bytes": 4483
+    },
+    "generated/gpus-extra.json": {
+      "sha256": "bdd13f17d97c04889e5573edc1088338b736c2fb97869469411eba4bc50a3ebd",
+      "bytes": 185642
+    },
+    "generated/cpus-blender.json": {
+      "sha256": "63ed898140057d5422d1cb6d23026b2994eb5bcd9b415a62552c018c7e597379",
+      "bytes": 95486
+    }
+  }
+}

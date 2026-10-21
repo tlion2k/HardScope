@@ -8,7 +8,7 @@ const { annotate } = require('./explain');
 
 const SEVERITY_WEIGHT = { critical: 18, warning: 8, tip: 2, ok: 0 };
 // Avisos que sólo indican que faltan datos: no deben bajar el índice del equipo.
-const NO_PENALTY = new Set(['gpu-unknown', 'cpu-unknown', 'board-unknown', 'board-inferred']);
+const NO_PENALTY = new Set(['gpu-unknown', 'cpu-unknown', 'board-unknown', 'board-inferred', 'gpu-estimated']);
 const LAPTOP_ACTION = 'En un portátil el procesador y la tarjeta de video van soldados a la placa y no se pueden cambiar. Para rendir más: usa el modo de rendimiento del fabricante, juega conectado a la corriente y ajusta la calidad gráfica.';
 const RES_FACTOR = { '1080p': 0.8, '1440p': 1.0, '4k': 1.4 };
 const RAM_TARGETS = {
@@ -106,12 +106,14 @@ function analyze(profile, settings = {}) {
         detail: `Según los índices de referencia, la plataforma ${boardLabel} (≈ ${ceiling}) y tu ${gpu.match.name} (${gpuScore}) están en un rango parecido.`,
       });
     }
-  } else if (gpu && !gpu.match) {
+  } else if (gpu && (!gpu.match || gpuScore == null)) {
     add({
       id: 'gpu-unknown', severity: 'tip', component: 'gpu',
-      title: 'Modelo de tarjeta de video no reconocido',
-      detail: `"${gpu.name}" no está en la base de datos, por lo que no se pudo comparar con la placa.`,
-      action: 'Agrega el modelo en src/data/gpus.json o actualiza HardScope a la última versión.',
+      title: 'Modelo de tarjeta de video sin índice de rendimiento',
+      detail: gpu.match
+        ? `Hay especificaciones públicas de "${gpu.match.name}" (VRAM, PCIe), pero no hay resultados de rendimiento suficientes para estimar su índice, así que no se pudo comparar con la placa ni el procesador.`
+        : `"${gpu.name}" no está en la base de datos, por lo que no se pudo comparar con la placa.`,
+      action: 'Actualiza el catálogo desde «Acerca de» o informa el modelo en GitHub para que se agregue.',
     });
   } else if (!platform) {
     add({
@@ -119,6 +121,15 @@ function analyze(profile, settings = {}) {
       title: 'Chipset de la placa no reconocido',
       detail: `No se pudo identificar el chipset de "${profile.board?.manufacturer || ''} ${profile.board?.model || ''}" (común en equipos de marca u OEM).`,
       action: 'Busca el modelo en la web del fabricante para conocer su versión de PCIe y procesadores compatibles.',
+    });
+  }
+
+  if (gpu?.match?.origin === 'estimated') {
+    const cal = hw.dataInfo.extra.calibration || {};
+    add({
+      id: 'gpu-estimated', severity: 'tip', component: 'gpu',
+      title: 'Índice de la tarjeta estimado con resultados de la comunidad',
+      detail: `"${gpu.match.name}" no está en el catálogo revisado a mano. Su índice (${gpu.score}) se estimó a partir de ${gpu.match.blender.n} resultados reales de Blender Open Data, calibrados con las tarjetas conocidas (error típico ${cal.medianError ?? '?'} %). Las comparaciones son orientativas.`,
     });
   }
 
@@ -194,6 +205,18 @@ function analyze(profile, settings = {}) {
     else if (v && v < need) add({ id: 'vram', severity: 'tip', component: 'gpu', title: `VRAM correcta, pero al límite para ${resolution}`, detail: `${v} GB alcanza hoy, aunque algunos juegos a ${resolution} ya piden ${need} GB.`, action: `En tu próxima tarjeta apunta a ${need}+ GB.` });
   }
 
+  // ---------- Render medido por la comunidad (uso de creación) ----------
+  if (usage === 'creation' && gpu?.match?.blender) {
+    const all = [...hw.extraByKey.values()].filter((e) => e.blender && !e.laptop).map((e) => e.blender);
+    const below = all.filter((s) => s < gpu.match.blender.score).length;
+    const pct = Math.round((below / all.length) * 100);
+    add({
+      id: 'gpu-render', severity: 'ok', component: 'gpu',
+      title: `Rendimiento en render medido: mejor que el ${pct} % de las tarjetas`,
+      detail: `En Blender Open Data, tu ${gpu.match.name} obtiene ${gpu.match.blender.score} puntos (mediana de ${gpu.match.blender.n} resultados reales con ${gpu.match.blender.backend}), frente a ${all.length} tarjetas de escritorio medidas.`,
+    });
+  }
+
   // ---------- RAM ----------
   const ram = analyzeRam(profile, usage, cpuId, gpu, add);
 
@@ -230,7 +253,7 @@ function analyze(profile, settings = {}) {
     healthWeights: SEVERITY_WEIGHT,
     laptop,
     dataIssues: profile.issues || [],
-    db: { gpus: hw.gpuDb.length, chipsets: Object.keys(hw.chipsets).length, version: hw.dataInfo.gpus.version, updated: hw.dataInfo.gpus.updated, source: hw.dataInfo.gpus.source },
+    db: { gpus: hw.gpuDb.length, chipsets: Object.keys(hw.chipsets).length, version: hw.dataInfo.gpus.version, updated: hw.dataInfo.gpus.updated, source: hw.dataInfo.gpus.source, extra: hw.dataInfo.extra, catalog: hw.dataInfo.catalog },
     counts: countBy(findings),
     components: {
       cpu: { ...cpuId, effScore: cpuEff },
