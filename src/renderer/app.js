@@ -18,6 +18,7 @@ const COMP = {
   gpu: { label: 'Tarjeta de video', icon: '<path d="M2 7h20v10H2zM6 17v3m4-3v3M7 12a2 2 0 1 0 4 0 2 2 0 0 0-4 0m7-2h4m-4 3h4"/>' },
   ram: { label: 'Memoria RAM', icon: '<path d="M2 7h20v9H2zM6 16v3m4-3v3m4-3v3m4-3v3M6 10v3m4-3v3m4-3v3m4-3v3"/>' },
   storage: { label: 'Almacenamiento', icon: '<path d="M4 4h16v16H4zM8 16h.01M12 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>' },
+  psu: { label: 'Fuente de poder', icon: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>' },
   system: { label: 'Sistema', icon: '<path d="M3 4h18v12H3zM8 20h8m-4-4v4"/>' },
 };
 const svg = (path) => `<svg viewBox="0 0 24 24">${path}</svg>`;
@@ -134,6 +135,7 @@ function apply({ profile, report }) {
   renderFindings();
   renderBalance();
   renderUpgrade();
+  renderProfiles();
   renderLive();
   renderComponents();
 }
@@ -595,22 +597,77 @@ function segField(name, values, current, labels = {}) {
 
 function renderProfiles() {
   const b = state.brands;
-  const list = state.profiles.profiles;
   const e = state.editing;
-  const card = (p) => `<div class="pcard ${state.profiles.active === (p?.id ?? null) ? 'active' : ''}" data-id="${esc(p?.id ?? '')}">
-      <div class="pc-top"><div class="avatar">${p ? esc(p.name.slice(0, 1).toUpperCase()) : svg('<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>')}</div>
-        <div><b>${p ? esc(p.name) : 'Vista global'}</b><small>${p ? esc(profileSummary(p)) : 'Recomendaciones genéricas, sin preferencias de marca'}</small></div></div>
-      <div class="pc-actions">
-        ${state.profiles.active === (p?.id ?? null) ? '<span class="chip sev-ok tone">En uso</span>' : `<button class="btn ghost sm" data-act="use">Usar</button>`}
-        ${p ? `<button class="btn ghost sm" data-act="edit">Editar</button>` : ''}
-      </div>
-    </div>`;
+  const active = activeProfile();
+  const page = $('#page-profiles');
 
-  const editor = e
-    ? `<form class="card editor" id="profileForm">
-        <h3>${e.id ? 'Editar perfil' : 'Nuevo perfil'}</h3>
+  if (e) {
+    page.innerHTML = `
+      <div class="page-head"><h1>${e.id ? 'Editar perfil' : 'Nuevo perfil'}</h1><p>Tus marcas preferidas y cuánto quieres gastar. HardScope comparará tu equipo con estas preferencias.</p></div>
+      ${profileEditor(b, e)}`;
+    bindEditor(b);
+    return;
+  }
+
+  if (!active) {
+    page.innerHTML = `
+      <div class="page-head"><h1>Actual vs perfil</h1><p>Compara tu equipo con tus preferencias de marca y te dice qué cambiar.</p></div>
+      <div class="card editor empty-editor">
+        <div class="avatar big">${svg('<path d="M12 5v14M5 12h14"/>')}</div>
+        <h3 style="margin:14px 0 6px">Estás en la vista global</h3>
+        <p class="muted">${state.profiles.profiles.length ? 'Elige uno de tus perfiles en la barra superior o crea uno nuevo.' : 'Crea un perfil con tus marcas favoritas de procesador, placa, tarjeta de video, RAM, SSD y fuente para ver qué tendrías que cambiar.'}</p>
+        <button class="btn primary" data-act="new">Crear perfil</button>
+      </div>`;
+    bindNew();
+    return;
+  }
+
+  const m = state.report?.profileMatch;
+  const STATUS = { ok: ['ok', 'Cumple'], change: ['warning', 'Cambiar'], optional: ['tip', 'Opcional'], info: ['tip', 'Info'] };
+  page.innerHTML = `
+    <div class="page-head vs-head">
+      <div><h1>Tu equipo vs perfil «${esc(active.name)}»</h1><p>${esc(profileSummary(active))}</p></div>
+      <div class="vs-actions"><button class="btn ghost" data-act="edit">Editar perfil</button><button class="btn ghost" data-act="new">Nuevo perfil</button></div>
+    </div>
+    ${
+      !m
+        ? '<div class="empty">Analizando tu equipo…</div>'
+        : `<div class="vs-summary tone sev-${m.required.length ? 'warning' : 'ok'}">${svg(m.required.length ? SEV.warning.icon : SEV.ok.icon)}<div><b>${esc(m.summary)}</b>${m.optional.length ? `<small>${m.optional.length} cambio(s) opcional(es): no son necesarios para el rendimiento.</small>` : ''}</div></div>
+          <div class="vs-cols"><span>Tu equipo actual</span><span></span><span>Lo que pide tu perfil</span></div>
+          <div class="vs-list">${m.rows
+            .map((r) => {
+              const [sev, label] = STATUS[r.status];
+              return `<div class="vs-row">
+                <div class="vs-cur"><div class="ic">${svg(COMP[r.key].icon)}</div><div><small>${COMP[r.key].label}</small><b>${esc(r.current)}</b></div></div>
+                <div class="vs-mid"><span class="chip tone sev-${sev}">${label}</span>${svg('<path d="M5 12h14m-6-6 6 6-6 6"/>')}</div>
+                <div class="vs-want">
+                  <small>${esc(r.wanted)}</small>
+                  <p>${esc(r.message)}</p>
+                  ${r.options ? `<div class="opts">${r.options.map((o) => `<div class="opt ${o.tier === 'Superior' ? 'sup' : ''}"><span>${esc(o.tier)}</span><b>${esc(o.name)}</b><em class="num">${esc(o.diff || '')}</em></div>`).join('')}</div>` : ''}
+                </div>
+              </div>`;
+            })
+            .join('')}</div>
+          <p class="muted" style="margin-top:14px">Equivalente: rinde igual o un poco más que tu componente actual. Superior: un salto claro de rendimiento. Los porcentajes comparan con tu equipo actual.</p>`
+    }`;
+  page.querySelector('[data-act="edit"]').addEventListener('click', () => {
+    state.editing = { ...active };
+    renderProfiles();
+  });
+  bindNew();
+}
+
+function bindNew() {
+  $('#page-profiles [data-act="new"]')?.addEventListener('click', () => {
+    state.editing = { budget: 'equilibrado' };
+    renderProfiles();
+  });
+}
+
+function profileEditor(b, e) {
+  return `<form class="card editor" id="profileForm">
         <label class="fld"><span>Nombre del perfil</span><input name="name" maxlength="40" required value="${esc(e.name || '')}" placeholder="Ej. Mi PC gamer"></label>
-        <div class="fld"><span>Marca de procesador</span>${segField('cpuBrand', b.cpu, e.cpuBrand)}</div>
+        <div class="fld"><span>Procesador y plataforma</span>${segField('cpuBrand', b.cpu, e.cpuBrand)}</div>
         <div class="fld"><span>Marca de tarjeta de video (chip)</span>${segField('gpuBrand', b.gpu, e.gpuBrand)}</div>
         <div class="fgrid">
           <label class="fld"><span>Ensambladora de la tarjeta</span><select name="gpuMaker">${optionList(e.gpuBrand ? b.gpuMakers[e.gpuBrand] : [...new Set(Object.values(b.gpuMakers).flat())], e.gpuMaker)}</select></label>
@@ -620,7 +677,7 @@ function renderProfiles() {
           <label class="fld"><span>SSD</span><select name="storageBrand">${optionList(Object.keys(b.storage), e.storageBrand)}</select></label>
         </div>
         <div class="fld"><span>Nivel de gasto</span>${segField('budget', Object.keys(BUDGETS), e.budget || 'equilibrado', BUDGETS).replace(/<button[^>]*data-v=""[^>]*>Cualquiera<\/button>/, '')}</div>
-        <div class="fgrid">
+        <div class="frow">
           <div class="fld"><span>Uso principal</span>${segField('usage', ['gaming', 'creation', 'office'], e.usage, { gaming: 'Juegos', creation: 'Creación', office: 'Oficina' })}</div>
           <div class="fld"><span>Resolución</span>${segField('resolution', ['1080p', '1440p', '4k'], e.resolution, { '4k': '4K' })}</div>
         </div>
@@ -630,37 +687,10 @@ function renderProfiles() {
           <button type="button" class="btn ghost" data-act="cancel">Cancelar</button>
           <button type="submit" class="btn primary">Guardar y usar</button>
         </div>
-      </form>`
-    : `<div class="card editor empty-editor">
-        <div class="avatar big">${svg('<path d="M12 5v14M5 12h14"/>')}</div>
-        <h3 style="margin:14px 0 6px">Crea tu perfil</h3>
-        <p class="muted">Elige tus marcas favoritas de procesador, tarjeta de video, placa, fuente, RAM y SSD, y cuánto quieres gastar. Las recomendaciones de mejora se ajustarán a ti en lugar de ser genéricas.</p>
-        <button class="btn primary" data-act="new">Crear perfil</button>
-      </div>`;
+      </form>`;
+}
 
-  $('#page-profiles').innerHTML = `
-    <div class="page-head"><h1>Mis perfiles</h1><p>Por defecto HardScope muestra una vista global. Con un perfil, la próxima mejora y los consejos se anclan a tus preferencias.</p></div>
-    <div class="profiles-layout">
-      <div class="plist">${card(null)}${list.map(card).join('')}</div>
-      ${editor}
-    </div>`;
-
-  const page = $('#page-profiles');
-  page.querySelectorAll('.pcard').forEach((el) =>
-    el.addEventListener('click', async (ev) => {
-      const act = ev.target.closest('[data-act]')?.dataset.act;
-      const id = el.dataset.id || null;
-      if (act === 'edit') {
-        state.editing = { ...list.find((p) => p.id === id) };
-        renderProfiles();
-      } else if (act === 'use') await activate(id);
-    })
-  );
-  page.querySelector('[data-act="new"]')?.addEventListener('click', () => {
-    state.editing = { budget: 'equilibrado' };
-    renderProfiles();
-  });
-
+function bindEditor(b) {
   const form = $('#profileForm');
   if (!form) return;
   form.querySelectorAll('.seg[data-field]').forEach((seg) =>
@@ -683,7 +713,7 @@ function renderProfiles() {
     state.profiles = await api.saveProfile(state.editing);
     state.editing = null;
     await activate(state.profiles.active);
-    go(state.report ? 'upgrade' : 'profiles');
+    go('profiles');
   });
   form.querySelector('[data-act="cancel"]').addEventListener('click', () => {
     state.editing = null;

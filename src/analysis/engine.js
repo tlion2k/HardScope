@@ -2,6 +2,7 @@
 // puntajes, comparaciones (placa vs GPU, CPU vs GPU, PCIe) y hallazgos con severidad.
 const hw = require('./hardware');
 const { planUpgrades, normalizePrefs } = require('./upgrade');
+const { matchProfile } = require('./profile-match');
 
 const SEVERITY_WEIGHT = { critical: 18, warning: 8, tip: 2, ok: 0 };
 const RES_FACTOR = { '1080p': 0.8, '1440p': 1.0, '4k': 1.4 };
@@ -184,6 +185,7 @@ function analyze(profile, settings = {}) {
   }
 
   const upgrades = planUpgrades({ cpuId, cpuEff, gpu, ceiling, platformKey, platform, chipset, resFactor, resolution, usage, ram, prefs });
+  const profileMatch = matchProfile({ profile, prefs, cpuId, chipset, platform, gpu, ram, resFactor });
 
   // ---------- Puntaje global ----------
   const penalty = findings.reduce((s, f) => s + SEVERITY_WEIGHT[f.severity], 0);
@@ -205,6 +207,7 @@ function analyze(profile, settings = {}) {
     },
     balance: { boardVsGpu, cpuVsGpu, pcie },
     upgrades,
+    profileMatch,
     findings,
   };
 }

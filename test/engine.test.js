@@ -142,3 +142,35 @@ test('perfil: nivel de gasto económico elige una GPU más barata que el máximo
   const max = analyze(pc, { prefs: { budget: 'maximo' } }).upgrades.steps[0].after.gpu;
   assert.ok(eco < max);
 });
+test('actual vs perfil: Intel -> perfil AMD exige placa y procesador, con opciones equivalentes o superiores', () => {
+  const pc = profile({ board: { manufacturer: 'ASRock', model: 'Z790 PG Lightning' }, cpu: { brand: 'Intel Core i5-14600KF', cores: 20, physicalCores: 14 }, ram: { total: 32 * GB, slots: 4, modules: [{ size: 16 * GB, type: 'DDR5', configuredSpeed: 4800, manufacturer: 'A-DATA Technology' }, { size: 16 * GB, type: 'DDR5', configuredSpeed: 4800, manufacturer: 'A-DATA Technology' }] } });
+  const m = analyze(pc, { prefs: { name: 'Jorge', cpuBrand: 'AMD', boardBrand: 'MSI', ramBrand: 'Kingston' } }).profileMatch;
+  const row = (k) => m.rows.find((r) => r.key === k);
+  assert.deepEqual(m.required, ['cpu', 'board']);
+  const cpu = row('cpu').options;
+  assert.equal(cpu[0].tier, 'Equivalente');
+  assert.match(cpu[0].name, /Ryzen/);
+  assert.ok(cpu.every((o) => !o.diff.startsWith('-')), 'ninguna opción rinde menos que el CPU actual');
+  assert.match(row('board').options[0].name, /MSI .*X870/); // Z790 es gama alta -> X870
+  assert.equal(row('ram').status, 'optional'); // DDR5 sirve; sólo cambia la marca
+  assert.equal(m.found.ram, 'ADATA XPG');
+});
+
+test('actual vs perfil: DDR4 al cambiar de plataforma obliga a cambiar la RAM', () => {
+  const m = analyze(profile(), { prefs: { name: 'X', cpuBrand: 'Intel' } }).profileMatch;
+  assert.ok(m.required.includes('ram'));
+  assert.match(m.rows.find((r) => r.key === 'ram').options[0].name, /DDR5/);
+});
+
+test('actual vs perfil: GPU de otra marca -> opciones de la marca pedida', () => {
+  const m = analyze(profile({ gpus: [{ name: 'AMD Radeon RX 7800 XT', vram: 16384 }] }), { prefs: { name: 'X', gpuBrand: 'NVIDIA' } }).profileMatch;
+  const gpu = m.rows.find((r) => r.key === 'gpu');
+  assert.equal(gpu.status, 'change');
+  assert.ok(gpu.options.length && gpu.options.every((o) => /GeForce/.test(o.name)));
+});
+
+test('actual vs perfil: sin perfil no hay comparación y con perfil coincidente no hay cambios', () => {
+  assert.equal(analyze(profile()).profileMatch, null);
+  const m = analyze(profile(), { prefs: { name: 'X', cpuBrand: 'AMD', gpuBrand: 'NVIDIA' } }).profileMatch;
+  assert.equal(m.required.length, 0);
+});

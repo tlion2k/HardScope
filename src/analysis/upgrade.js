@@ -242,7 +242,7 @@ function platformStep(s, { resFactor, prefs }) {
 }
 
 function boardLabel(platformDef, prefs) {
-  const branded = prefs.boardBrand && hw.brands.boards[prefs.boardBrand]?.[platformDef.key];
+  const branded = prefs.boardBrand && hw.brands.boards[prefs.boardBrand]?.[platformDef.key]?.mainstream;
   return branded ? `Placa ${branded}` : platformDef.label;
 }
 

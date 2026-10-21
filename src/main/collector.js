@@ -2,7 +2,8 @@
 const si = require('systeminformation');
 const path = require('path');
 const { execFile } = require('child_process');
-const { MEM_TYPE } = require('../analysis/hardware');
+const { MEM_TYPE, brands } = require('../analysis/hardware');
+const PCI_VENDORS = brands.pciVendors;
 
 function runPowerShellFile(file, timeout = 30000) {
   return new Promise((resolve) => {
@@ -54,6 +55,7 @@ async function collect() {
       vram: c.vram || 0,
       driverVersion: c.driverVersion || null,
       bus: c.bus,
+      maker: p?.subsys ? PCI_VENDORS[p.subsys.toUpperCase()] || null : null,
       pcie: p ? { curGen: p.curGen, curWidth: p.curWidth, maxGen: p.maxGen, maxWidth: p.maxWidth } : null,
     };
   });

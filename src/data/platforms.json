@@ -18,6 +18,10 @@
     "AM4c": { "socket": "AM4 (3ª gen chipset)", "vendor": "AMD", "ceiling": 85, "mem": "DDR4", "year": 2019, "bestCpus": ["Ryzen 7 5700X3D", "Ryzen 7 5800X3D"], "eol": true },
     "AM5": { "socket": "AM5", "vendor": "AMD", "ceiling": 140, "mem": "DDR5", "year": 2022, "bestCpus": ["Ryzen 7 7800X3D", "Ryzen 7 9800X3D", "Ryzen 9 9950X3D"], "eol": false }
   },
+  "modern": {
+    "AMD": { "platform": "AM5", "boards": { "mainstream": "AM5 B650 / B850", "enthusiast": "AM5 X870 / X870E" }, "cpus": ["Ryzen 5 7600X", "Ryzen 5 9600X", "Ryzen 7 7700X", "Ryzen 7 9700X", "Ryzen 9 7900X", "Ryzen 9 9900X", "Ryzen 7 7800X3D", "Ryzen 7 9800X3D"] },
+    "Intel": { "platform": "LGA1851", "boards": { "mainstream": "LGA 1851 B860", "enthusiast": "LGA 1851 Z890" }, "cpus": ["Core Ultra 5 245K", "Core Ultra 7 265K", "Core Ultra 9 285K"] }
+  },
   "chipsets": {
     "H61": { "platform": "LGA1155", "segment": "entry", "gpuPcie": 2 },
     "B75": { "platform": "LGA1155", "segment": "mainstream", "gpuPcie": 3 },

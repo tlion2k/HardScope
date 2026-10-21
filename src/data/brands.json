@@ -1,6 +1,16 @@
 {
   "_comment": "Marcas y series que se usan para personalizar las recomendaciones según el perfil del usuario. Para agregar una marca basta con añadirla aquí.",
   "cpu": ["AMD", "Intel"],
+  "pciVendors": {
+    "1043": "ASUS", "1462": "MSI", "1458": "Gigabyte", "19DA": "Zotac", "196E": "PNY", "1569": "Palit",
+    "10B0": "Gainward", "3842": "EVGA", "1DA2": "Sapphire", "174B": "Sapphire", "148C": "PowerColor",
+    "1682": "XFX", "1849": "ASRock", "10DE": "Founders Edition", "8086": "Intel Limited Edition", "1ACC": "Sparkle"
+  },
+  "aliases": {
+    "board": { "ASUSTEK": "ASUS", "ASUS": "ASUS", "MICRO-STAR": "MSI", "MSI": "MSI", "GIGABYTE": "Gigabyte", "ASROCK": "ASRock", "BIOSTAR": "Biostar" },
+    "ram": { "KINGSTON": "Kingston", "CORSAIR": "Corsair", "G SKILL": "G.Skill", "G.SKILL": "G.Skill", "F4-": "G.Skill", "F5-": "G.Skill", "CRUCIAL": "Crucial", "MICRON": "Crucial", "A-DATA": "ADATA XPG", "ADATA": "ADATA XPG", "TEAM": "TeamGroup" },
+    "storage": { "SAMSUNG": "Samsung", "WDC": "WD", "WD ": "WD", "WESTERN": "WD", "KINGSTON": "Kingston", "CT": "Crucial", "CRUCIAL": "Crucial", "ST": "Seagate", "SEAGATE": "Seagate" }
+  },
   "gpu": ["NVIDIA", "AMD", "Intel"],
   "gpuMakers": {
     "NVIDIA": ["ASUS", "MSI", "Gigabyte", "Zotac", "PNY", "Palit", "Gainward", "Inno3D", "Founders Edition"],
@@ -26,11 +36,11 @@
     "Acer": "Predator BiFrost o Nitro"
   },
   "boards": {
-    "ASUS": { "AM5": "ASUS TUF Gaming B650-PLUS WIFI o ROG Strix B850-F", "LGA1851": "ASUS TUF Gaming B860-PLUS WIFI o ROG Strix Z890-F" },
-    "MSI": { "AM5": "MSI MAG B650 TOMAHAWK WIFI o MAG B850 TOMAHAWK", "LGA1851": "MSI MAG B860 TOMAHAWK WIFI o MPG Z890 EDGE" },
-    "Gigabyte": { "AM5": "Gigabyte B650 AORUS ELITE AX o B850 AORUS ELITE", "LGA1851": "Gigabyte B860 AORUS ELITE o Z890 AORUS ELITE" },
-    "ASRock": { "AM5": "ASRock B650 Steel Legend o B850 Steel Legend", "LGA1851": "ASRock B860 Steel Legend o Z890 Steel Legend" },
-    "Biostar": { "AM5": "Biostar B650GTA o B850 VALKYRIE", "LGA1851": "Biostar B860A-SILVER o Z890 VALKYRIE" }
+    "ASUS": { "AM5": { "mainstream": "ASUS TUF Gaming B850-PLUS WIFI", "enthusiast": "ASUS ROG Strix X870-F Gaming WIFI" }, "LGA1851": { "mainstream": "ASUS TUF Gaming B860-PLUS WIFI", "enthusiast": "ASUS ROG Strix Z890-F Gaming WIFI" } },
+    "MSI": { "AM5": { "mainstream": "MSI MAG B850 TOMAHAWK WIFI", "enthusiast": "MSI MAG X870 TOMAHAWK WIFI" }, "LGA1851": { "mainstream": "MSI MAG B860 TOMAHAWK WIFI", "enthusiast": "MSI MAG Z890 TOMAHAWK WIFI" } },
+    "Gigabyte": { "AM5": { "mainstream": "Gigabyte B850 AORUS ELITE WIFI7", "enthusiast": "Gigabyte X870 AORUS ELITE WIFI7" }, "LGA1851": { "mainstream": "Gigabyte B860 AORUS ELITE WIFI7", "enthusiast": "Gigabyte Z890 AORUS ELITE WIFI7" } },
+    "ASRock": { "AM5": { "mainstream": "ASRock B850 Steel Legend WiFi", "enthusiast": "ASRock X870 Steel Legend WiFi" }, "LGA1851": { "mainstream": "ASRock B860 Steel Legend WiFi", "enthusiast": "ASRock Z890 Steel Legend WiFi" } },
+    "Biostar": { "AM5": { "mainstream": "Biostar B850 VALKYRIE", "enthusiast": "Biostar X870E VALKYRIE" }, "LGA1851": { "mainstream": "Biostar B860A-SILVER", "enthusiast": "Biostar Z890 VALKYRIE" } }
   },
   "psu": {
     "Corsair": "Corsair RMe o RMx",

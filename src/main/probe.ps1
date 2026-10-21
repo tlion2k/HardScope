@@ -7,8 +7,11 @@ $keys = 'DEVPKEY_PciDevice_CurrentLinkSpeed', 'DEVPKEY_PciDevice_CurrentLinkWidt
 $gpus = @(Get-PnpDevice -Class Display -PresentOnly | ForEach-Object {
   $p = @{}
   Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName $keys | ForEach-Object { $p[$_.KeyName] = $_.Data }
+  # SUBSYS_ddddvvvv: los últimos 4 dígitos son el fabricante de la tarjeta (ASUS, MSI...).
+  $subsys = if ($_.InstanceId -match 'SUBSYS_[0-9A-F]{4}([0-9A-F]{4})') { $matches[1] } else { $null }
   [pscustomobject]@{
     name     = $_.FriendlyName
+    subsys   = $subsys
     curGen   = $p['DEVPKEY_PciDevice_CurrentLinkSpeed']
     curWidth = $p['DEVPKEY_PciDevice_CurrentLinkWidth']
     maxGen   = $p['DEVPKEY_PciDevice_MaxLinkSpeed']
