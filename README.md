@@ -2,6 +2,63 @@
 
 **Analizador de hardware y cuellos de botella para PC (Windows).**
 
+## ⬇️ Descarga directa
+
+| | Archivo | |
+|---|---|---|
+| **Instalador** (recomendado) | `HardScope-Setup.exe` | [Descargar](https://github.com/tlion2k/HardScope/releases/latest/download/HardScope-Setup.exe) |
+| **Portable** (sin instalar, se abre con doble clic) | `HardScope-Portable.exe` | [Descargar](https://github.com/tlion2k/HardScope/releases/latest/download/HardScope-Portable.exe) |
+
+Los enlaces siempre bajan la última versión. Todas las versiones están en [Releases](https://github.com/tlion2k/HardScope/releases).
+
+> Requiere Windows 10 u 11 de 64 bits. Como el ejecutable no tiene firma digital, Windows SmartScreen puede mostrar un aviso la primera vez: pulsa **Más información → Ejecutar de todas formas**.
+
+## 💻 Levantar el proyecto en local
+
+**Requisitos:** [Node.js](https://nodejs.org) 20 o superior y [Git](https://git-scm.com), en Windows 10/11.
+
+1. Clona el repositorio:
+
+   ```bash
+   git clone https://github.com/tlion2k/HardScope.git
+   ```
+
+2. Entra a la carpeta:
+
+   ```bash
+   cd HardScope
+   ```
+
+3. Instala las dependencias (descarga Electron, unos 100 MB la primera vez):
+
+   ```bash
+   npm install
+   ```
+
+   Si npm avisa de *install scripts* bloqueados, apruébalos y vuelve a instalar:
+
+   ```bash
+   npm install-scripts approve electron electron-winstaller
+   ```
+
+4. Abre la aplicación:
+
+   ```bash
+   npm start
+   ```
+
+   Al abrirse analiza el equipo sola en unos segundos. Si cambias algo en `src/`, cierra la app y vuelve a ejecutar `npm start`.
+
+**Otros comandos:**
+
+| Comando | Qué hace |
+|---|---|
+| `npm test` | Ejecuta las pruebas del motor de diagnóstico |
+| `npm run dist` | Genera `HardScope-Setup.exe` y `HardScope-Portable.exe` en `dist/` |
+| `npm run dist:dir` | Genera la app sin instalador en `dist/win-unpacked/` (prueba rápida) |
+
+---
+
 HardScope revisa tu equipo, compara la **placa madre con la tarjeta de video** y el **procesador con la GPU**, revisa RAM, discos y configuración, y te dice con colores qué tienes que mejorar:
 
 | Color | Significado |
@@ -27,20 +84,7 @@ HardScope revisa tu equipo, compara la **placa madre con la tarjeta de video** y
 - **Monitor en vivo**: uso de CPU (total y por hilo), GPU, RAM, VRAM y temperatura de la GPU, con diagnóstico en tiempo real (*"Cuello de botella de CPU ahora mismo"*).
 - **Reporte exportable** en HTML.
 
-## Instalar
-
-Descarga el instalador o la versión portable desde [Releases](../../releases).
-
 ## Desarrollo
-
-Requisitos: Node.js 20 o superior, en Windows 10/11.
-
-```bash
-npm install
-npm start        # abre la app
-npm test         # pruebas del motor de diagnóstico
-npm run dist     # genera el instalador y el portable en dist/
-```
 
 ### Estructura
 
@@ -53,6 +97,7 @@ src/
     hardware.js      identificación de GPU, CPU, chipset y RAM
     engine.js        reglas, severidades y consejos
     upgrade.js       planificador de la próxima mejora
+    profile-match.js comparación entre el equipo actual y el perfil
   data/        base de datos editable
     gpus.json        GPUs: puntaje, PCIe, carriles y VRAM
     platforms.json   chipsets y plataformas: PCIe, socket, techo y mejores CPUs
@@ -70,8 +115,8 @@ test/          pruebas con node:test
 ### Publicar una versión
 
 1. Sube la versión en `package.json`.
-2. Crea una etiqueta: `git tag v1.1.0 && git push --tags`.
-3. GitHub Actions compila el instalador y lo publica en Releases. La app avisa de la nueva versión desde *Acerca de → Buscar actualizaciones*.
+2. Crea una etiqueta: `git tag v1.4.0 && git push --tags`.
+3. GitHub Actions ejecuta las pruebas, compila `HardScope-Setup.exe` y `HardScope-Portable.exe` y los publica en Releases. Los enlaces de *Descarga directa* apuntan solos a la nueva versión, y la app avisa desde *Acerca de → Buscar actualizaciones*.
 
 ## Nota
 

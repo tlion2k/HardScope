@@ -1,7 +1,7 @@
 {
   "name": "hardscope",
   "productName": "HardScope",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Analizador de hardware y cuellos de botella para PC: compara placa madre, tarjeta de video, CPU, RAM y discos, y da consejos de mejora.",
   "main": "src/main/main.js",
   "scripts": {
@@ -30,9 +30,10 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "HardScope"
+      "shortcutName": "HardScope",
+      "artifactName": "HardScope-Setup.exe"
     },
-    "portable": { "artifactName": "HardScope-${version}-portable.exe" }
+    "portable": { "artifactName": "HardScope-Portable.exe" }
   },
   "dependencies": {
     "systeminformation": "^5.33.16"
