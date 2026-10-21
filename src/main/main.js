@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs/promises');
 const { collect } = require('./collector');
 const { LiveMonitor } = require('./monitor');
+const profiles = require('./profiles');
 const { analyze, liveBottleneck } = require('../analysis/engine');
 const pkg = require('../../package.json');
 
@@ -67,6 +68,12 @@ ipcMain.handle('export', async (_e, html) => {
   shell.showItemInFolder(filePath);
   return filePath;
 });
+
+ipcMain.handle('profiles:load', () => profiles.load());
+ipcMain.handle('profiles:save', (_e, p) => profiles.save(p));
+ipcMain.handle('profiles:remove', (_e, id) => profiles.remove(id));
+ipcMain.handle('profiles:activate', (_e, id) => profiles.activate(id));
+ipcMain.handle('brands', () => require('../data/brands.json'));
 
 ipcMain.handle('app:info', () => ({ version: pkg.version, repo: pkg.hardscope?.repo || null }));
 

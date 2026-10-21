@@ -24,7 +24,7 @@ table{width:100%;border-collapse:collapse;margin:18px 0 28px}td{padding:8px 10px
 .f b.k{font-size:11px;letter-spacing:.1em;text-transform:uppercase}.f h3{margin:4px 0}.f p{margin:4px 0;color:#c3c9de}
 </style></head><body><main>
 <h1>Reporte de HardScope</h1>
-<div class="muted">${esc(profile.os.hostname)} · ${new Date(profile.collectedAt).toLocaleString()} · ${esc(report.settings.usage)} a ${esc(report.settings.resolution)}</div>
+<div class="muted">${esc(profile.os.hostname)} · ${new Date(profile.collectedAt).toLocaleString()} · ${esc(report.settings.usage)} a ${esc(report.settings.resolution)} · ${report.settings.profile ? `perfil «${esc(report.settings.profile)}»` : 'vista global'}</div>
 <p><span class="score">${report.health}/100</span><br><span class="muted">Puntaje de salud del equipo</span></p>
 <table>${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>
 ${

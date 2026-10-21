@@ -1,7 +1,7 @@
 // Motor de diagnóstico: recibe el perfil de hardware recolectado y devuelve
 // puntajes, comparaciones (placa vs GPU, CPU vs GPU, PCIe) y hallazgos con severidad.
 const hw = require('./hardware');
-const { planUpgrades } = require('./upgrade');
+const { planUpgrades, normalizePrefs } = require('./upgrade');
 
 const SEVERITY_WEIGHT = { critical: 18, warning: 8, tip: 2, ok: 0 };
 const RES_FACTOR = { '1080p': 0.8, '1440p': 1.0, '4k': 1.4 };
@@ -19,6 +19,9 @@ function analyze(profile, settings = {}) {
   const usage = settings.usage || 'gaming';
   const resolution = settings.resolution || '1440p';
   const resFactor = RES_FACTOR[resolution] ?? 1;
+  const prefs = normalizePrefs(settings.prefs);
+  // Sugerencias de GPU ancladas a la marca preferida (si no hay de esa marca, genéricas).
+  const suggest = (min, max, limit = 4) => (prefs.gpuBrand && hw.suggestGpus(min, max, limit, prefs.gpuBrand).length ? hw.suggestGpus(min, max, limit, prefs.gpuBrand) : hw.suggestGpus(min, max, limit));
   const findings = [];
   const add = (f) => findings.push(f);
 
@@ -48,7 +51,7 @@ function analyze(profile, settings = {}) {
     const ratio = gpuScore / ceiling;
     boardVsGpu.ratio = round(ratio, 2);
     const boardLabel = chipset ? `${chipset.id} (${platform.socket})` : platform.socket;
-    const modern = modernPlatformAdvice();
+    const modern = modernPlatformAdvice(prefs);
     if (gpu.integrated) {
       boardVsGpu.verdict = 'board';
     } else if (ratio > 1.5) {
@@ -72,7 +75,7 @@ function analyze(profile, settings = {}) {
     } else if (ratio < 0.6 && usage !== 'office') {
       boardVsGpu.verdict = 'board';
       const cap = Math.min(ceiling, cpuEff);
-      const options = hw.suggestGpus(Math.max(gpuScore * 1.4, cap * 0.55), cap * 1.0);
+      const options = suggest(Math.max(gpuScore * 1.4, cap * 0.55), cap * 1.0);
       add({
         id: 'board-superior', severity: gpuScore < 15 || ratio < 0.3 ? 'warning' : 'tip', component: 'gpu',
         title: 'Tu placa es superior a tu tarjeta de video',
@@ -124,7 +127,7 @@ function analyze(profile, settings = {}) {
         detail: `Tu ${cpuId.name} (puntaje ${cpuEff} a ${resolution}) no alcanza a alimentar a la ${gpu.match.name} (${gpuScore}). La GPU quedará esperando al procesador y no llegará al 100% de uso.`,
         action: upgrades
           ? `Sube a ${upgrades.join(' o ')} (compatibles con tu placa${platform.note ? `; ${platform.note.toLowerCase()}` : ''}).`
-          : `Tu placa ya no tiene un CPU mucho mejor: cambia a ${modernPlatformAdvice()}. Mientras tanto, jugar a mayor resolución reduce el cuello de botella.`,
+          : `Tu placa ya no tiene un CPU mucho mejor: cambia a ${modernPlatformAdvice(prefs)}. Mientras tanto, jugar a mayor resolución reduce el cuello de botella.`,
       });
     } else if (ratio < 0.5) {
       cpuVsGpu.verdict = 'gpu';
@@ -132,7 +135,7 @@ function analyze(profile, settings = {}) {
         id: 'gpu-weak-vs-cpu', severity: softer(ratio < 0.3 ? 'warning' : 'tip'), component: 'gpu',
         title: 'La tarjeta de video limita al procesador',
         detail: `Tu procesador (${cpuEff}) puede mover una GPU mucho más potente que la ${gpu.match.name} (${gpuScore}). La mejora más rentable es cambiar la tarjeta de video.`,
-        action: `GPUs que tu CPU aprovecharía: ${hw.suggestGpus(cpuEff * 0.55, cpuEff * 1.0).join(', ') || 'gama media/alta actual'}.`,
+        action: `GPUs que tu CPU aprovecharía: ${suggest(cpuEff * 0.55, cpuEff * 1.0).join(', ') || 'gama media/alta actual'}.`,
       });
     } else {
       cpuVsGpu.verdict = 'balanced';
@@ -151,7 +154,7 @@ function analyze(profile, settings = {}) {
       id: 'igpu-only', severity: usage === 'gaming' ? 'critical' : 'warning', component: 'gpu',
       title: 'Sólo hay gráficos integrados',
       detail: `${gpu?.name || 'La GPU integrada'} comparte la memoria RAM y tiene un rendimiento muy bajo para ${usage === 'gaming' ? 'juegos' : 'edición y render'}.`,
-      action: `Instala una tarjeta dedicada. Recomendadas para tu equipo: ${hw.suggestGpus(cap * 0.35, cap * 0.8).join(', ') || 'RTX 4060 / RX 7600'}.`,
+      action: `Instala una tarjeta dedicada. Recomendadas para tu equipo: ${suggest(cap * 0.35, cap * 0.8).join(', ') || 'RTX 4060 / RX 7600'}.`,
     });
   } else if (gpu && !gpu.integrated && usage !== 'office') {
     const v = gpu.vramGb;
@@ -180,7 +183,7 @@ function analyze(profile, settings = {}) {
     add({ id: 'cpu-unknown', severity: 'tip', component: 'cpu', title: 'Procesador no reconocido con precisión', detail: `El puntaje de "${cpuId.name}" se estimó a partir de núcleos y frecuencia.`, action: 'Los resultados de equilibrio CPU/GPU son aproximados.' });
   }
 
-  const upgrades = planUpgrades({ cpuId, cpuEff, gpu, ceiling, platformKey, platform, chipset, resFactor, resolution, usage, findings, ram });
+  const upgrades = planUpgrades({ cpuId, cpuEff, gpu, ceiling, platformKey, platform, chipset, resFactor, resolution, usage, findings, ram, prefs });
 
   // ---------- Puntaje global ----------
   const penalty = findings.reduce((s, f) => s + SEVERITY_WEIGHT[f.severity], 0);
@@ -189,7 +192,7 @@ function analyze(profile, settings = {}) {
   findings.sort((a, b) => order[a.severity] - order[b.severity]);
 
   return {
-    settings: { usage, resolution },
+    settings: { usage, resolution, profile: prefs.name },
     health,
     counts: countBy(findings),
     components: {
@@ -323,8 +326,12 @@ function cpuIsTopOfPlatform(cpuId, platform) {
   return top.some((t) => mine.includes(t.replace(/\s+/g, ' ')));
 }
 
-function modernPlatformAdvice() {
-  return 'una placa AM5 (B650/B850) con Ryzen 7 7800X3D/9800X3D, o LGA 1851 (B860/Z890) con Core Ultra 7 265K';
+function modernPlatformAdvice(prefs = {}) {
+  const amd = 'una placa AM5 (B650/B850) con Ryzen 7 7800X3D/9800X3D';
+  const intel = 'una placa LGA 1851 (B860/Z890) con Core Ultra 7 265K';
+  if (prefs.cpuBrand === 'AMD') return amd;
+  if (prefs.cpuBrand === 'Intel') return intel;
+  return `${amd}, o ${intel}`;
 }
 
 function usageLabel(u) {

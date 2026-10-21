@@ -216,6 +216,7 @@ h1, h2, h3, h4 { margin: 0; font-family: 'Segoe UI Variable Display', 'Segoe UI'
 .up-pick .ic { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(135deg, #7c5cff, #22b8ee); color: #fff; flex: none; }
 .up-pick .ic svg { width: 24px; height: 24px; }
 .up-pick h2 { font-size: 26px; }
+.pick-sub { color: #c4b5fd; font-size: 13px; margin-top: 2px; }
 .up-gain { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .up-gain b { font-size: 34px; line-height: 1; color: var(--ok); }
 .up-gain > span { color: var(--muted); margin-right: 6px; }
@@ -242,6 +243,40 @@ h1, h2, h3, h4 { margin: 0; font-family: 'Segoe UI Variable Display', 'Segoe UI'
 .road-top h4 { font-size: 16px; margin-top: 2px; }
 .road-top .gain { font-size: 20px; color: var(--ok); }
 .road-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+
+/* ---------- Perfiles ---------- */
+.btn.sm { padding: 5px 12px; font-size: 12px; border-radius: 10px; }
+.profile-pick { display: inline-flex; align-items: center; gap: 8px; padding: 0 6px 0 12px; height: 38px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); }
+.profile-pick.on { border-color: rgba(139, 92, 246, 0.5); color: #c4b5fd; background: rgba(139, 92, 246, 0.12); }
+.profile-pick select, .fld select, .fld input { font: inherit; color: var(--text); background: transparent; border: 0; outline: none; }
+.profile-pick select { font-size: 13px; padding: 6px 4px; cursor: pointer; max-width: 210px; }
+select option { background: #121726; color: var(--text); }
+.pbanner { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 14px; margin-bottom: 16px; background: var(--panel); border: 1px dashed var(--line-2); }
+.pbanner.on { border: 1px solid rgba(139, 92, 246, 0.45); background: rgba(139, 92, 246, 0.1); }
+.pbanner > svg { width: 22px; height: 22px; color: #c4b5fd; }
+.pbanner div { flex: 1; }
+.pbanner small { display: block; color: var(--muted); font-size: 12.5px; }
+.note.pref svg { color: #c4b5fd; }
+.profiles-layout { display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: start; }
+.plist { display: flex; flex-direction: column; gap: 10px; }
+.pcard { padding: 14px 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+.pcard.active { border-color: rgba(139, 92, 246, 0.55); background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(34, 211, 238, 0.04)); }
+.pc-top { display: flex; gap: 12px; align-items: center; }
+.pc-top small { display: block; color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 2px; }
+.avatar { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; font-weight: 700; font-size: 17px; background: linear-gradient(135deg, #7c5cff, #22b8ee); color: #fff; }
+.avatar.big { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto; }
+.pc-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+.editor { display: flex; flex-direction: column; gap: 16px; }
+.editor h3 { margin: 0; }
+.empty-editor { text-align: center; align-items: center; padding: 40px; }
+.empty-editor p { max-width: 460px; }
+.fld { display: flex; flex-direction: column; gap: 6px; }
+.fld > span { font-size: 12px; color: var(--muted); }
+.fld input, .fld select { padding: 9px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line-2); }
+.fld input:focus, .fld select:focus { border-color: var(--violet); }
+.fld .seg { align-self: flex-start; flex-wrap: wrap; }
+.fgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.form-actions { display: flex; gap: 10px; align-items: center; padding-top: 6px; border-top: 1px solid var(--line); }
 
 /* ---------- Monitor ---------- */
 .live-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
@@ -278,7 +313,7 @@ h1, h2, h3, h4 { margin: 0; font-family: 'Segoe UI Variable Display', 'Segoe UI'
 .about a { color: var(--cyan); cursor: pointer; }
 
 @media (max-width: 1180px) {
-  .hero, .up-hero { grid-template-columns: 1fr; }
+  .hero, .up-hero, .profiles-layout { grid-template-columns: 1fr; }
   .vs { grid-template-columns: 1fr; }
   .vs .mid { flex-direction: row; }
   .two { grid-template-columns: 1fr; }

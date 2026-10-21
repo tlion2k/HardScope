@@ -31,6 +31,9 @@ const state = {
   live: false,
   unsub: null,
   chart: null,
+  profiles: { active: null, profiles: [] }, // perfiles de preferencias
+  brands: null,
+  editing: null, // perfil en edición
 };
 
 function loadSettings() {
@@ -51,11 +54,16 @@ function saveSettings() {
 // ---------------- Navegación y barra ----------------
 function go(page) {
   document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('active', b.dataset.page === page));
-  const ready = !!state.report || page === 'about';
+  const standalone = page === 'about' || page === 'profiles';
+  const ready = !!state.report || standalone;
   document.querySelectorAll('.page').forEach((p) => p.classList.toggle('active', ready && p.id === `page-${page}`));
-  $('#loading').classList.toggle('hidden', page === 'about');
+  $('#loading').classList.toggle('hidden', standalone);
   if (page !== 'live' && state.live) stopLive();
 }
+document.querySelector('.content').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-goto]');
+  if (b) go(b.dataset.goto);
+});
 $('#nav').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-page]');
   if (b) go(b.dataset.page);
@@ -71,7 +79,7 @@ function bindSeg(id, key) {
     el.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
     saveSettings();
     if (state.profile) {
-      const res = await api.reanalyze(state.settings);
+      const res = await api.reanalyze(apiSettings());
       if (res) apply(res);
     }
   });
@@ -101,7 +109,7 @@ async function scan() {
   let i = 0;
   const t = setInterval(() => ($('#loadingStep').textContent = steps[++i % steps.length]), 1100);
   try {
-    const res = await api.scan(state.settings);
+    const res = await api.scan(apiSettings());
     apply(res);
     flash(`Análisis completo · ${new Date().toLocaleTimeString()}`);
   } catch (err) {
@@ -368,6 +376,28 @@ const afterBadge = (snap) =>
     ? `<span class="chip sev-ok tone">${svg(SEV.ok.icon)}Sin cuello de botella</span>`
     : `<span class="chip sev-warning tone">${svg(SEV.warning.icon)}Luego limitará ${LIMITER[snap.limiter]}</span>`;
 
+// Modelo · versión Marca → modelo como título y la versión debajo.
+const pickHtml = (pick, tag) => {
+  const [main, ...rest] = pick.split(' · ');
+  return `<${tag}>${esc(main)}</${tag}>${rest.length ? `<div class="pick-sub">${esc(rest.join(' · '))}</div>` : ''}`;
+};
+
+const stepNotes = (s) =>
+  [
+    s.prefNote && `<p class="note pref">${svg('<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9a7 7 0 0 1 14 0"/>')}<span>${esc(s.prefNote)}</span></p>`,
+    s.psu && `<p class="note">${svg('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>')}<span>${esc(s.psu)}</span></p>`,
+    s.note && `<p class="note">${svg(SEV.tip.icon)}<span>${esc(s.note)}</span></p>`,
+  ]
+    .filter(Boolean)
+    .join('');
+
+function profileBanner() {
+  const p = activeProfile();
+  return p
+    ? `<div class="pbanner on">${svg('<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9a7 7 0 0 1 14 0"/>')}<div><b>Según tu perfil «${esc(p.name)}»</b><small>${esc(profileSummary(p))}</small></div><button class="btn ghost sm" data-goto="profiles">Cambiar</button></div>`
+    : `<div class="pbanner">${svg('<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20"/>')}<div><b>Vista global</b><small>Recomendaciones genéricas. Crea un perfil con tus marcas preferidas y nivel de gasto para personalizarlas.</small></div><button class="btn primary sm" data-goto="profiles">Crear perfil</button></div>`;
+}
+
 function renderUpgrade() {
   const u = state.report.upgrades;
   const next = u.steps[0];
@@ -376,7 +406,7 @@ function renderUpgrade() {
 
   const quick = u.quickFixes.length
     ? `<div class="card" style="margin-bottom:16px"><h3>Antes de gastar dinero</h3>
-        ${u.quickFixes.map((q) => `<div class="qf"><span class="cost ${q.cost === 'Gratis' ? 'free' : ''}">${q.cost}</span><div><b>${esc(q.title)}</b><div class="muted">${esc(q.action || '')}</div></div></div>`).join('')}
+        ${u.quickFixes.map((q) => `<div class="qf"><span class="cost ${q.cost === 'Gratis' ? 'free' : ''}">${q.cost}</span><div><b>${esc(q.title)}</b><div class="muted">${esc(q.action || '')}${q.brandHint ? ` ${esc(q.brandHint)}` : ''}</div></div></div>`).join('')}
       </div>`
     : '';
 
@@ -384,11 +414,11 @@ function renderUpgrade() {
     ? `<div class="up-hero">
         <div class="up-main">
           <div class="kicker">Siguiente actualización recomendada · ${esc(next.title)}</div>
-          <div class="up-pick"><div class="ic">${svg(STEP_ICON[next.kind])}</div><h2>${esc(next.pick)}</h2></div>
+          <div class="up-pick"><div class="ic">${svg(STEP_ICON[next.kind])}</div><div>${pickHtml(next.pick, 'h2')}</div></div>
           <div class="up-gain">${next.gainPct < 5 ? '<b class="num">Base</b><span>prepara el siguiente paso</span>' : `<b class="num">+${next.gainPct}%</b><span>de rendimiento estimado</span>`}${afterBadge(next.after)}</div>
           <p>${esc(next.reason)}</p>
           ${next.alternatives.length ? `<div class="alts"><small>Alternativas sin cuello de botella:</small>${next.alternatives.map((a) => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}
-          ${next.note ? `<p class="note">${svg(SEV.tip.icon)}<span>${esc(next.note)}</span></p>` : ''}
+          ${stepNotes(next)}
         </div>
         <div class="up-compare">
           <h3>Ahora</h3>${balanceBars(next.before, max)}
@@ -405,9 +435,9 @@ function renderUpgrade() {
             (s, i) => `<div class="road-step">
               <div class="road-n num">${i + 1}</div>
               <div class="card">
-                <div class="road-top"><div><small class="muted">${esc(s.title)}</small><h4>${esc(s.pick)}</h4></div><b class="num gain">${s.gainPct < 5 ? 'Base' : `+${s.gainPct}%`}</b></div>
+                <div class="road-top"><div><small class="muted">${esc(s.title)}</small>${pickHtml(s.pick, 'h4')}</div><b class="num gain">${s.gainPct < 5 ? 'Base' : `+${s.gainPct}%`}</b></div>
                 <p class="muted" style="margin:6px 0 10px">${esc(s.reason)}</p>
-                ${s.note ? `<p class="note">${svg(SEV.tip.icon)}<span>${esc(s.note)}</span></p>` : ''}
+                ${stepNotes(s)}
                 <div class="road-foot">${afterBadge(s.after)}<span class="muted num">CPU ${s.after.cpu} · GPU ${s.after.gpu}${s.after.ceiling ? ` · Placa ${s.after.ceiling}` : ''}</span></div>
               </div>
             </div>`
@@ -417,7 +447,7 @@ function renderUpgrade() {
 
   $('#page-upgrade').innerHTML = `
     <div class="page-head"><h1>Tu próxima mejora</h1><p>Qué conviene actualizar ahora para ganar rendimiento sin crear un cuello de botella nuevo (${labelUsage()} a ${esc(state.report.settings.resolution)}).</p></div>
-    ${quick}${hero}${road}
+    ${profileBanner()}${quick}${hero}${road}
     ${u.steps.length ? `<p class="muted" style="margin-top:18px">${esc(u.final)} Los porcentajes son estimaciones de rendimiento en juegos.</p>` : ''}`;
 }
 
@@ -555,6 +585,186 @@ function renderComponents() {
     ]))}`;
 }
 
+// ---------------- Perfiles de preferencias ----------------
+const BUDGETS = { economico: 'Económico', equilibrado: 'Equilibrado', maximo: 'Máximo rendimiento' };
+const activeProfile = () => state.profiles.profiles.find((p) => p.id === state.profiles.active) || null;
+const apiSettings = () => ({ ...state.settings, prefs: activeProfile() });
+
+function profileSummary(p) {
+  const parts = [
+    p.cpuBrand && `CPU ${p.cpuBrand}`,
+    p.gpuBrand && `GPU ${p.gpuBrand}${p.gpuMaker ? ` (${p.gpuMaker})` : ''}`,
+    p.boardBrand && `Placa ${p.boardBrand}`,
+    p.psuBrand && `Fuente ${p.psuBrand}`,
+    p.ramBrand && `RAM ${p.ramBrand}`,
+    p.storageBrand && `SSD ${p.storageBrand}`,
+  ].filter(Boolean);
+  return `${parts.join(' · ') || 'Sin marcas preferidas'} · ${BUDGETS[p.budget || 'equilibrado']}`;
+}
+
+async function initProfiles() {
+  [state.profiles, state.brands] = await Promise.all([api.loadProfiles(), api.brands()]);
+  applyProfileDefaults(activeProfile());
+  renderProfileSelect();
+  renderProfiles();
+}
+
+function renderProfileSelect() {
+  const sel = $('#profileSel');
+  sel.innerHTML = `<option value="">Vista global (genérica)</option>${state.profiles.profiles.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}<option value="__new">＋ Crear perfil…</option>`;
+  sel.value = state.profiles.active || '';
+  sel.closest('.profile-pick').classList.toggle('on', !!state.profiles.active);
+}
+
+$('#profileSel').addEventListener('change', async (e) => {
+  if (e.target.value === '__new') {
+    state.editing = { budget: 'equilibrado' };
+    renderProfileSelect();
+    renderProfiles();
+    return go('profiles');
+  }
+  await activate(e.target.value || null);
+});
+
+// Al activar un perfil se usan su uso y resolución por defecto, si los tiene.
+function applyProfileDefaults(p) {
+  if (!p) return;
+  for (const [key, seg] of [['usage', '#usageSeg'], ['resolution', '#resSeg']]) {
+    if (!p[key]) continue;
+    state.settings[key] = p[key];
+    $(seg).querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === p[key]));
+  }
+  saveSettings();
+}
+
+async function activate(id) {
+  state.profiles = await api.activateProfile(id);
+  applyProfileDefaults(activeProfile());
+  renderProfileSelect();
+  renderProfiles();
+  if (state.profile) {
+    const res = await api.reanalyze(apiSettings());
+    if (res) apply(res);
+  }
+  flash(id ? `Perfil «${activeProfile()?.name}» activo` : 'Vista global activa');
+}
+
+function optionList(values, current, anyLabel = 'Cualquiera') {
+  return `<option value="">${anyLabel}</option>${values.map((v) => `<option ${v === current ? 'selected' : ''}>${esc(v)}</option>`).join('')}`;
+}
+function segField(name, values, current, labels = {}) {
+  return `<div class="seg" data-field="${name}">${[['', 'Cualquiera'], ...values.map((v) => [v, labels[v] || v])].map(([v, l]) => `<button type="button" data-v="${esc(v)}" class="${(current || '') === v ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`;
+}
+
+function renderProfiles() {
+  const b = state.brands;
+  const list = state.profiles.profiles;
+  const e = state.editing;
+  const card = (p) => `<div class="pcard ${state.profiles.active === (p?.id ?? null) ? 'active' : ''}" data-id="${esc(p?.id ?? '')}">
+      <div class="pc-top"><div class="avatar">${p ? esc(p.name.slice(0, 1).toUpperCase()) : svg('<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>')}</div>
+        <div><b>${p ? esc(p.name) : 'Vista global'}</b><small>${p ? esc(profileSummary(p)) : 'Recomendaciones genéricas, sin preferencias de marca'}</small></div></div>
+      <div class="pc-actions">
+        ${state.profiles.active === (p?.id ?? null) ? '<span class="chip sev-ok tone">En uso</span>' : `<button class="btn ghost sm" data-act="use">Usar</button>`}
+        ${p ? `<button class="btn ghost sm" data-act="edit">Editar</button>` : ''}
+      </div>
+    </div>`;
+
+  const editor = e
+    ? `<form class="card editor" id="profileForm">
+        <h3>${e.id ? 'Editar perfil' : 'Nuevo perfil'}</h3>
+        <label class="fld"><span>Nombre del perfil</span><input name="name" maxlength="40" required value="${esc(e.name || '')}" placeholder="Ej. Mi PC gamer"></label>
+        <div class="fld"><span>Marca de procesador</span>${segField('cpuBrand', b.cpu, e.cpuBrand)}</div>
+        <div class="fld"><span>Marca de tarjeta de video (chip)</span>${segField('gpuBrand', b.gpu, e.gpuBrand)}</div>
+        <div class="fgrid">
+          <label class="fld"><span>Ensambladora de la tarjeta</span><select name="gpuMaker">${optionList(e.gpuBrand ? b.gpuMakers[e.gpuBrand] : [...new Set(Object.values(b.gpuMakers).flat())], e.gpuMaker)}</select></label>
+          <label class="fld"><span>Placa madre</span><select name="boardBrand">${optionList(Object.keys(b.boards), e.boardBrand)}</select></label>
+          <label class="fld"><span>Fuente de poder</span><select name="psuBrand">${optionList(Object.keys(b.psu), e.psuBrand)}</select></label>
+          <label class="fld"><span>Memoria RAM</span><select name="ramBrand">${optionList(Object.keys(b.ram), e.ramBrand)}</select></label>
+          <label class="fld"><span>SSD</span><select name="storageBrand">${optionList(Object.keys(b.storage), e.storageBrand)}</select></label>
+        </div>
+        <div class="fld"><span>Nivel de gasto</span>${segField('budget', Object.keys(BUDGETS), e.budget || 'equilibrado', BUDGETS).replace(/<button[^>]*data-v=""[^>]*>Cualquiera<\/button>/, '')}</div>
+        <div class="fgrid">
+          <div class="fld"><span>Uso principal</span>${segField('usage', ['gaming', 'creation', 'office'], e.usage, { gaming: 'Juegos', creation: 'Creación', office: 'Oficina' })}</div>
+          <div class="fld"><span>Resolución</span>${segField('resolution', ['1080p', '1440p', '4k'], e.resolution, { '4k': '4K' })}</div>
+        </div>
+        <div class="form-actions">
+          ${e.id ? '<button type="button" class="btn danger" data-act="delete">Eliminar</button>' : ''}
+          <div class="grow"></div>
+          <button type="button" class="btn ghost" data-act="cancel">Cancelar</button>
+          <button type="submit" class="btn primary">Guardar y usar</button>
+        </div>
+      </form>`
+    : `<div class="card editor empty-editor">
+        <div class="avatar big">${svg('<path d="M12 5v14M5 12h14"/>')}</div>
+        <h3 style="margin:14px 0 6px">Crea tu perfil</h3>
+        <p class="muted">Elige tus marcas favoritas de procesador, tarjeta de video, placa, fuente, RAM y SSD, y cuánto quieres gastar. Las recomendaciones de mejora se ajustarán a ti en lugar de ser genéricas.</p>
+        <button class="btn primary" data-act="new">Crear perfil</button>
+      </div>`;
+
+  $('#page-profiles').innerHTML = `
+    <div class="page-head"><h1>Mis perfiles</h1><p>Por defecto HardScope muestra una vista global. Con un perfil, la próxima mejora y los consejos se anclan a tus preferencias.</p></div>
+    <div class="profiles-layout">
+      <div class="plist">${card(null)}${list.map(card).join('')}</div>
+      ${editor}
+    </div>`;
+
+  const page = $('#page-profiles');
+  page.querySelectorAll('.pcard').forEach((el) =>
+    el.addEventListener('click', async (ev) => {
+      const act = ev.target.closest('[data-act]')?.dataset.act;
+      const id = el.dataset.id || null;
+      if (act === 'edit') {
+        state.editing = { ...list.find((p) => p.id === id) };
+        renderProfiles();
+      } else if (act === 'use') await activate(id);
+    })
+  );
+  page.querySelector('[data-act="new"]')?.addEventListener('click', () => {
+    state.editing = { budget: 'equilibrado' };
+    renderProfiles();
+  });
+
+  const form = $('#profileForm');
+  if (!form) return;
+  form.querySelectorAll('.seg[data-field]').forEach((seg) =>
+    seg.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button');
+      if (!btn) return;
+      readForm();
+      state.editing[seg.dataset.field] = btn.dataset.v || null;
+      if (seg.dataset.field === 'gpuBrand' && state.editing.gpuMaker && !(b.gpuMakers[btn.dataset.v] || []).includes(state.editing.gpuMaker)) state.editing.gpuMaker = null;
+      renderProfiles();
+    })
+  );
+  function readForm() {
+    const fd = new FormData(form);
+    for (const [k, v] of fd.entries()) state.editing[k] = v || null;
+  }
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    readForm();
+    state.profiles = await api.saveProfile(state.editing);
+    state.editing = null;
+    await activate(state.profiles.active);
+    go(state.report ? 'upgrade' : 'profiles');
+  });
+  form.querySelector('[data-act="cancel"]').addEventListener('click', () => {
+    state.editing = null;
+    renderProfiles();
+  });
+  form.querySelector('[data-act="delete"]')?.addEventListener('click', async () => {
+    if (!confirm(`¿Eliminar el perfil «${state.editing.name}»?`)) return;
+    const wasActive = state.profiles.active === state.editing.id;
+    state.profiles = await api.removeProfile(state.editing.id);
+    state.editing = null;
+    if (wasActive) await activate(null);
+    else {
+      renderProfileSelect();
+      renderProfiles();
+    }
+  });
+}
+
 // ---------------- Acerca de ----------------
 async function renderAbout() {
   const info = await api.appInfo();
@@ -582,4 +792,4 @@ async function renderAbout() {
 }
 
 renderAbout();
-scan();
+initProfiles().then(scan);

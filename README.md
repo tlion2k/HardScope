@@ -22,6 +22,7 @@ HardScope revisa tu equipo, compara la **placa madre con la tarjeta de video** y
 - **Almacenamiento**: Windows en HDD, SSD SATA frente a NVMe y poco espacio libre.
 - **Sistema**: plan de energía en ahorro y BIOS antigua.
 - **Próxima mejora**: simula paso a paso qué actualizar (GPU, CPU compatible con tu placa o una plataforma nueva) para ganar rendimiento **sin crear un cuello de botella nuevo**. Muestra la ganancia estimada, alternativas (incluida una opción económica), el equilibrio antes y después de cada paso, y primero las mejoras gratis o baratas (XMP, doble canal, SSD).
+- **Perfiles de preferencias**: al principio todo se muestra en una **vista global** genérica. Si creas un perfil (marca de procesador, de tarjeta de video y su ensambladora, de placa, fuente, RAM y SSD, nivel de gasto, uso y resolución), la próxima mejora y los consejos se anclan a tus preferencias. Si tu marca preferida no tiene una opción sin cuello de botella, la app lo avisa y propone la mejor alternativa. Puedes tener varios perfiles y cambiar entre ellos desde la barra superior.
 - **Monitor en vivo**: uso de CPU (total y por hilo), GPU, RAM, VRAM y temperatura de la GPU, con diagnóstico en tiempo real (*"Cuello de botella de CPU ahora mismo"*).
 - **Reporte exportable** en HTML.
 
@@ -54,6 +55,7 @@ src/
   data/        base de datos editable
     gpus.json        GPUs: puntaje, PCIe, carriles y VRAM
     platforms.json   chipsets y plataformas: PCIe, socket, techo y mejores CPUs
+    brands.json      marcas y series para los perfiles (placas, fuentes, RAM, SSD, ensambladoras)
   renderer/    interfaz (HTML, CSS y JS sin paso de compilación)
 test/          pruebas con node:test
 ```

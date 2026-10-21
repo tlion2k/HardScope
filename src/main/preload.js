@@ -10,6 +10,11 @@ contextBridge.exposeInMainWorld('hardscope', {
     ipcRenderer.on('monitor:sample', handler);
     return () => ipcRenderer.removeListener('monitor:sample', handler);
   },
+  loadProfiles: () => ipcRenderer.invoke('profiles:load'),
+  saveProfile: (p) => ipcRenderer.invoke('profiles:save', p),
+  removeProfile: (id) => ipcRenderer.invoke('profiles:remove', id),
+  activateProfile: (id) => ipcRenderer.invoke('profiles:activate', id),
+  brands: () => ipcRenderer.invoke('brands'),
   exportReport: (html) => ipcRenderer.invoke('export', html),
   appInfo: () => ipcRenderer.invoke('app:info'),
   checkUpdate: () => ipcRenderer.invoke('update:check'),

@@ -138,10 +138,27 @@ function pcieBandwidth(gen, lanes) {
   return (PCIE_LANE_GBPS[gen] ?? 0) * lanes;
 }
 
-// GPUs sugeridas para un rango de puntaje, preferentemente modernas.
-function suggestGpus(minScore, maxScore, limit = 4) {
+function gpuVendor(g) {
+  if (/^(rtx|gtx|gt)\s/.test(g.id)) return 'NVIDIA';
+  if (/^(rx|radeon)\s/.test(g.id)) return 'AMD';
+  if (/^(arc|iris|uhd|hd)\s/.test(g.id)) return 'Intel';
+  return null;
+}
+
+// Potencia de fuente aproximada recomendada para un equipo con esa GPU.
+function psuWatts(score) {
+  if (score >= 110) return 1000;
+  if (score >= 80) return 850;
+  if (score >= 65) return 750;
+  if (score >= 45) return 650;
+  if (score >= 28) return 550;
+  return 450;
+}
+
+// GPUs sugeridas para un rango de puntaje, preferentemente modernas (opcionalmente de una marca).
+function suggestGpus(minScore, maxScore, limit = 4, vendor = null) {
   return gpuDb
-    .filter((g) => !g.integrated && g.score >= minScore && g.score <= maxScore && g.year >= 2022)
+    .filter((g) => !g.integrated && g.score >= minScore && g.score <= maxScore && g.year >= 2022 && (!vendor || gpuVendor(g) === vendor))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((g) => g.name);
@@ -159,5 +176,8 @@ module.exports = {
   ratedSpeedFromPart,
   pcieBandwidth,
   suggestGpus,
+  gpuVendor,
+  psuWatts,
+  brands: require('../data/brands.json'),
   MEM_TYPE,
 };

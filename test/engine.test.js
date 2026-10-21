@@ -114,3 +114,37 @@ test('plan de mejora: las mejoras gratis van primero', () => {
   assert.equal(q[0].cost, 'Gratis');
   assert.ok(q.some((x) => x.id === 'ram-single'));
 });
+test('perfil: la GPU sugerida respeta la marca preferida y la ensambladora', () => {
+  const prefs = { name: 'Jorge', cpuBrand: 'AMD', gpuBrand: 'NVIDIA', gpuMaker: 'ASUS', psuBrand: 'Corsair', budget: 'equilibrado' };
+  const r = analyze(profile({ board: { model: 'B650 AORUS ELITE' }, cpu: { brand: 'AMD Ryzen 7 7700X', cores: 16, physicalCores: 8 }, gpus: [{ name: 'AMD Radeon RX 6600', vram: 8192 }] }), { prefs });
+  const step = r.upgrades.steps[0];
+  assert.match(step.pick, /GeForce/);
+  assert.match(step.pick, /ASUS/);
+  assert.match(step.psu, /Corsair/);
+  assert.equal(r.settings.profile, 'Jorge');
+  assert.match(r.findings.find((f) => f.id === 'board-superior').action, /GeForce/);
+});
+
+test('perfil: sin perfil se mantiene la vista global', () => {
+  const r = analyze(profile({ board: { model: 'B650 AORUS ELITE' }, cpu: { brand: 'AMD Ryzen 7 7700X', cores: 16, physicalCores: 8 }, gpus: [{ name: 'AMD Radeon RX 6600', vram: 8192 }] }));
+  assert.equal(r.settings.profile, null);
+  assert.equal(r.upgrades.steps[0].prefNote, null);
+});
+
+test('perfil: plataforma nueva con la marca de CPU y placa elegidas', () => {
+  const ddr3 = { total: 16 * GB, slots: 4, modules: [{ size: 8 * GB, type: 'DDR3', configuredSpeed: 1600 }, { size: 8 * GB, type: 'DDR3', configuredSpeed: 1600 }] };
+  const pc = profile({ board: { model: 'Z97-A' }, cpu: { brand: 'Intel Core i7-4790K', cores: 8, physicalCores: 4 }, gpus: [{ name: 'NVIDIA GeForce RTX 3060', vram: 12288 }], ram: ddr3 });
+  const intel = analyze(pc, { prefs: { cpuBrand: 'Intel', boardBrand: 'MSI' } }).upgrades.steps[0];
+  assert.match(intel.pick, /MSI .*B860|Z890/);
+  assert.match(intel.pick, /Core Ultra/);
+  const amd = analyze(pc, { prefs: { cpuBrand: 'AMD', boardBrand: 'ASUS', budget: 'maximo' } }).upgrades.steps[0];
+  assert.match(amd.pick, /ASUS .*B650|B850/);
+  assert.match(amd.pick, /9800X3D/);
+});
+
+test('perfil: nivel de gasto económico elige una GPU más barata que el máximo', () => {
+  const pc = profile({ board: { model: 'B650 AORUS ELITE' }, cpu: { brand: 'AMD Ryzen 7 7700X', cores: 16, physicalCores: 8 }, gpus: [{ name: 'NVIDIA GeForce GTX 1650', vram: 4096 }] });
+  const eco = analyze(pc, { prefs: { budget: 'economico' } }).upgrades.steps[0].after.gpu;
+  const max = analyze(pc, { prefs: { budget: 'maximo' } }).upgrades.steps[0].after.gpu;
+  assert.ok(eco < max);
+});

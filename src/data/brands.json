@@ -1,0 +1,62 @@
+{
+  "_comment": "Marcas y series que se usan para personalizar las recomendaciones según el perfil del usuario. Para agregar una marca basta con añadirla aquí.",
+  "cpu": ["AMD", "Intel"],
+  "gpu": ["NVIDIA", "AMD", "Intel"],
+  "gpuMakers": {
+    "NVIDIA": ["ASUS", "MSI", "Gigabyte", "Zotac", "PNY", "Palit", "Gainward", "Inno3D", "Founders Edition"],
+    "AMD": ["Sapphire", "PowerColor", "XFX", "ASUS", "Gigabyte", "ASRock", "MSI"],
+    "Intel": ["Intel Limited Edition", "ASRock", "Sparkle", "Acer"]
+  },
+  "gpuSeries": {
+    "ASUS": "TUF Gaming, ROG Strix o Dual",
+    "MSI": "Gaming Trio, Ventus o Suprim",
+    "Gigabyte": "Gaming OC, WindForce o AORUS",
+    "Zotac": "Twin Edge, Trinity o AMP",
+    "PNY": "Verto o XLR8",
+    "Palit": "GamingPro o Dual",
+    "Gainward": "Phoenix o Ghost",
+    "Inno3D": "Twin X2 o X3",
+    "Founders Edition": "Founders Edition (de NVIDIA)",
+    "Sapphire": "Pulse o Nitro+",
+    "PowerColor": "Hellhound, Fighter o Red Devil",
+    "XFX": "Swift, Quicksilver o Merc",
+    "ASRock": "Challenger, Steel Legend o Taichi",
+    "Intel Limited Edition": "Limited Edition",
+    "Sparkle": "Titan o ROC",
+    "Acer": "Predator BiFrost o Nitro"
+  },
+  "boards": {
+    "ASUS": { "AM5": "ASUS TUF Gaming B650-PLUS WIFI o ROG Strix B850-F", "LGA1851": "ASUS TUF Gaming B860-PLUS WIFI o ROG Strix Z890-F" },
+    "MSI": { "AM5": "MSI MAG B650 TOMAHAWK WIFI o MAG B850 TOMAHAWK", "LGA1851": "MSI MAG B860 TOMAHAWK WIFI o MPG Z890 EDGE" },
+    "Gigabyte": { "AM5": "Gigabyte B650 AORUS ELITE AX o B850 AORUS ELITE", "LGA1851": "Gigabyte B860 AORUS ELITE o Z890 AORUS ELITE" },
+    "ASRock": { "AM5": "ASRock B650 Steel Legend o B850 Steel Legend", "LGA1851": "ASRock B860 Steel Legend o Z890 Steel Legend" },
+    "Biostar": { "AM5": "Biostar B650GTA o B850 VALKYRIE", "LGA1851": "Biostar B860A-SILVER o Z890 VALKYRIE" }
+  },
+  "psu": {
+    "Corsair": "Corsair RMe o RMx",
+    "Seasonic": "Seasonic Focus GX o Vertex GX",
+    "be quiet!": "be quiet! Pure Power 12 M o Straight Power 12",
+    "Cooler Master": "Cooler Master MWE Gold V2",
+    "EVGA": "EVGA SuperNOVA GT",
+    "Thermaltake": "Thermaltake Toughpower GF A3",
+    "MSI": "MSI MAG A-GL",
+    "ASUS": "ASUS TUF Gaming Gold",
+    "Gigabyte": "Gigabyte UD Gold",
+    "NZXT": "NZXT C Gold"
+  },
+  "ram": {
+    "Kingston": "Kingston Fury Beast",
+    "Corsair": "Corsair Vengeance",
+    "G.Skill": "G.Skill Flare X5 o Trident Z5",
+    "Crucial": "Crucial Pro",
+    "ADATA XPG": "XPG Lancer",
+    "TeamGroup": "T-Force Delta"
+  },
+  "storage": {
+    "Samsung": "Samsung 990 EVO Plus o 990 Pro",
+    "WD": "WD Black SN850X o Blue SN5000",
+    "Kingston": "Kingston KC3000 o NV3",
+    "Crucial": "Crucial T500 o P3 Plus",
+    "Seagate": "Seagate FireCuda 530"
+  }
+}
