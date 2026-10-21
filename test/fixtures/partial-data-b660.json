@@ -1,0 +1,116 @@
+{
+  "origin": "synthetic",
+  "description": "Lectura avanzada de Windows fallida: sin PCIe, sin disco del sistema ni plan de energía",
+  "note": "Inventario sintético con el formato real del recolector; no proviene de un equipo físico.",
+  "expect": {
+    "chipset": "B660",
+    "gpuId": "rtx 3060",
+    "dataIssues": 1,
+    "channel": "dual-probable",
+    "noFindings": [
+      "os-hdd",
+      "os-ssd",
+      "os-sata",
+      "pcie-width"
+    ]
+  },
+  "profile": {
+    "collectedAt": "2026-10-01T00:00:00.000Z",
+    "issues": [
+      {
+        "area": "system",
+        "text": "No se pudieron leer los datos avanzados de Windows (tiempo de espera agotado). Faltan: enlace PCIe de la GPU, velocidad nominal de la RAM, ranuras libres, disco del sistema, plan de energía y ensambladora de la tarjeta."
+      }
+    ],
+    "system": {
+      "manufacturer": "To Be Filled By O.E.M.",
+      "model": "To Be Filled By O.E.M.",
+      "chassis": "Desktop",
+      "laptop": false
+    },
+    "bios": {
+      "vendor": "American Megatrends Inc.",
+      "version": "1.0",
+      "releaseDate": "2024-03-01"
+    },
+    "displays": [
+      {
+        "model": null,
+        "main": true,
+        "resolutionX": 1920,
+        "resolutionY": 1080,
+        "refreshRate": 144
+      }
+    ],
+    "volumes": [
+      {
+        "mount": "C:",
+        "size": 536870912000,
+        "used": 214748364800,
+        "type": "NTFS"
+      }
+    ],
+    "os": {
+      "distro": "Microsoft Windows 11 Home",
+      "release": "10.0.26100",
+      "build": "26100",
+      "arch": "x64",
+      "hostname": null
+    },
+    "power": null,
+    "cpu": {
+      "brand": "Intel® Core™ i5-12400F",
+      "manufacturer": "Intel",
+      "cores": 12,
+      "physicalCores": 6,
+      "speed": 2.5
+    },
+    "board": {
+      "manufacturer": "Micro-Star International Co., Ltd.",
+      "model": "PRO B660M-A DDR4 (MS-7D46)",
+      "version": "1.0"
+    },
+    "ram": {
+      "total": 17179869184,
+      "available": 9663676416,
+      "slots": null,
+      "maxCapacity": null,
+      "modules": [
+        {
+          "size": 8589934592,
+          "type": "DDR4",
+          "configuredSpeed": 3200,
+          "partNum": "",
+          "manufacturer": "Unknown",
+          "locator": "BANK 0"
+        },
+        {
+          "size": 8589934592,
+          "type": "DDR4",
+          "configuredSpeed": 3200,
+          "partNum": "",
+          "manufacturer": "Unknown",
+          "locator": "BANK 2"
+        }
+      ]
+    },
+    "gpus": [
+      {
+        "name": "NVIDIA GeForce RTX 3060",
+        "vendor": "NVIDIA",
+        "vram": 12288,
+        "maker": null,
+        "pcie": null
+      }
+    ],
+    "disks": [
+      {
+        "name": "KINGSTON SNV2S1000G",
+        "type": "SSD",
+        "bus": "NVMe",
+        "size": 1073741824000,
+        "isSystem": false
+      }
+    ]
+  }
+}

@@ -57,6 +57,6 @@ ${
 ${report.findings
   .map((f) => `<div class="f" style="border-left-color:${COLORS[f.severity]}"><b class="k" style="color:${COLORS[f.severity]}">${LABELS[f.severity]}</b><h3>${esc(f.title)}</h3><p>${esc(f.detail)}</p>${f.action ? `<p><b>Qué hacer:</b> ${esc(f.action)}</p>` : ''}${checksList(f.checks)}</div>`)
   .join('')}
-<p class="muted" style="margin-top:30px">Generado por HardScope. Los índices de rendimiento son estimaciones basadas en pruebas públicas, no mediciones de este equipo; el resultado real depende del juego, la resolución y la configuración. Antes de comprar, confirma la compatibilidad en la web del fabricante.</p>
+<p class="muted" style="margin-top:30px">Generado por HardScope · base de datos ${esc(report.db?.version || '')} (actualizada ${esc(report.db?.updated || '')}). Los índices de rendimiento son estimaciones basadas en pruebas públicas, no mediciones de este equipo; el resultado real depende del juego, la resolución y la configuración. Antes de comprar, confirma la compatibilidad en la web del fabricante.</p>
 </main></body></html>`;
 }

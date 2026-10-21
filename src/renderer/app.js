@@ -664,7 +664,9 @@ function renderComponents() {
       ['Tarjeta de video', 'systeminformation + Windows PnP (enlace PCIe y ensambladora por SUBSYS) · índice en gpus.json'],
       ['Memoria RAM', 'WMI Win32_PhysicalMemory (velocidad, ranura, número de parte) · nominal deducida del número de parte'],
       ['Discos', 'Get-PhysicalDisk y Get-Partition (disco del sistema)'],
-      ['Base de datos', `${r.db.gpus} tarjetas de video · ${r.db.chipsets} chipsets (src/data)`],
+      ['Base de datos', `${r.db.gpus} tarjetas de video · ${r.db.chipsets} chipsets · versión ${r.db.version} (actualizada ${r.db.updated})`],
+      ['Fuente de los índices', r.db.source],
+      ['Confianza de tu GPU', r.components.gpu?.match ? `${r.components.gpu.match.conf} (${{ alta: 'contrastado con varias fuentes', media: 'estimación coherente con reseñas públicas', baja: 'pocos datos públicos o modelo reciente' }[r.components.gpu.match.conf]})` : 'sin datos'],
       ['Datos no leídos', r.dataIssues.length ? r.dataIssues.map((i) => i.text).join(' · ') : 'ninguno'],
     ])}</div>`;
 }

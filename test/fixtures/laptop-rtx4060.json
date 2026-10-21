@@ -1,0 +1,125 @@
+{
+  "origin": "synthetic",
+  "description": "Portátil gamer con RTX 4060 Laptop y gráficos integrados",
+  "note": "Inventario sintético con el formato real del recolector; no proviene de un equipo físico.",
+  "expect": {
+    "laptop": true,
+    "gpuId": "rtx 4060",
+    "boardVerdict": "laptop",
+    "maxSteps": 0,
+    "channel": "dual",
+    "noFindings": [
+      "board-superior",
+      "board-limits-gpu"
+    ]
+  },
+  "profile": {
+    "collectedAt": "2026-10-01T00:00:00.000Z",
+    "issues": [],
+    "system": {
+      "manufacturer": "ASUSTeK COMPUTER INC.",
+      "model": "ROG Strix G16 G614JV",
+      "chassis": "Notebook",
+      "laptop": true
+    },
+    "bios": {
+      "vendor": "American Megatrends Inc.",
+      "version": "1.0",
+      "releaseDate": "2024-03-01"
+    },
+    "displays": [
+      {
+        "model": null,
+        "main": true,
+        "resolutionX": 1920,
+        "resolutionY": 1080,
+        "refreshRate": 144
+      }
+    ],
+    "volumes": [
+      {
+        "mount": "C:",
+        "size": 536870912000,
+        "used": 214748364800,
+        "type": "NTFS"
+      }
+    ],
+    "os": {
+      "distro": "Microsoft Windows 11 Home",
+      "release": "10.0.26100",
+      "build": "26100",
+      "arch": "x64",
+      "hostname": null
+    },
+    "power": {
+      "guid": "381b4222-f694-41f0-9685-ff5bb260df2e",
+      "name": "Balanced"
+    },
+    "cpu": {
+      "brand": "Intel® Core™ i7-13650HX",
+      "manufacturer": "Intel",
+      "cores": 20,
+      "physicalCores": 14,
+      "speed": 2.6
+    },
+    "board": {
+      "manufacturer": "ASUSTeK COMPUTER INC.",
+      "model": "G614JV",
+      "version": "1.0"
+    },
+    "ram": {
+      "total": 17179869184,
+      "available": 7516192768,
+      "slots": 2,
+      "maxCapacity": 34359738368,
+      "modules": [
+        {
+          "size": 8589934592,
+          "type": "DDR5",
+          "configuredSpeed": 4800,
+          "partNum": "M425R1GB4BB0-CQKOL",
+          "manufacturer": "Samsung",
+          "locator": "Controller0-ChannelA-DIMM0"
+        },
+        {
+          "size": 8589934592,
+          "type": "DDR5",
+          "configuredSpeed": 4800,
+          "partNum": "M425R1GB4BB0-CQKOL",
+          "manufacturer": "Samsung",
+          "locator": "Controller1-ChannelA-DIMM0"
+        }
+      ]
+    },
+    "gpus": [
+      {
+        "name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+        "vendor": "NVIDIA",
+        "vram": 8188,
+        "maker": "ASUS",
+        "pcie": {
+          "curGen": 4,
+          "curWidth": 8,
+          "maxGen": 4,
+          "maxWidth": 8
+        }
+      },
+      {
+        "name": "Intel(R) UHD Graphics",
+        "vendor": "Intel Corporation",
+        "vram": 128,
+        "maker": null,
+        "pcie": null
+      }
+    ],
+    "disks": [
+      {
+        "name": "Micron 2400 MTFDKBA1T0QFM",
+        "type": "SSD",
+        "bus": "NVMe",
+        "size": 1099511627776,
+        "isSystem": true
+      }
+    ]
+  }
+}

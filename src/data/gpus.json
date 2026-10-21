@@ -1,14 +1,33 @@
 {
-  "_comment": "score = rendimiento relativo aproximado a 1440p (RTX 4090 = 100). pcie = generación PCIe de la tarjeta, lanes = carriles eléctricos. Para añadir una GPU basta con agregar una entrada; el id se busca dentro del nombre normalizado (gana el id más largo).",
+  "meta": {
+    "schema": 1,
+    "version": "2026.10.21",
+    "updated": "2026-10-21",
+    "scale": "Índice relativo a 1440p con RTX 4090 = 100. Los portátiles se calculan como 0,8 × la versión de escritorio.",
+    "method": "Valores redondeados a partir de reseñas públicas; HardScope no los midió. Sirven para comparar componentes, no para predecir FPS.",
+    "sources": {
+      "resenas-publicas": "Promedio aproximado de reseñas públicas de rendimiento relativo a 1440p (TechPowerUp, Hardware Unboxed, Gamers Nexus). Pendiente de contrastar entrada por entrada.",
+      "fabricante": "Especificaciones del fabricante (PCIe, carriles, VRAM, año)."
+    },
+    "defaults": {
+      "src": "resenas-publicas",
+      "specs": "fabricante",
+      "conf": "media"
+    },
+    "confidence": {
+      "alta": "contrastado con varias fuentes",
+      "media": "estimación coherente con reseñas públicas",
+      "baja": "pocos datos públicos o modelo reciente"
+    }
+  },
   "gpus": [
-    { "id": "rtx 5090", "name": "GeForce RTX 5090", "score": 130, "pcie": 5, "lanes": 16, "vram": 32, "year": 2025 },
-    { "id": "rtx 5080", "name": "GeForce RTX 5080", "score": 82, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025 },
-    { "id": "rtx 5070 ti", "name": "GeForce RTX 5070 Ti", "score": 73, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025 },
-    { "id": "rtx 5070", "name": "GeForce RTX 5070", "score": 58, "pcie": 5, "lanes": 16, "vram": 12, "year": 2025 },
-    { "id": "rtx 5060 ti", "name": "GeForce RTX 5060 Ti", "score": 42, "pcie": 5, "lanes": 8, "vram": 16, "year": 2025 },
-    { "id": "rtx 5060", "name": "GeForce RTX 5060", "score": 35, "pcie": 5, "lanes": 8, "vram": 8, "year": 2025 },
-    { "id": "rtx 5050", "name": "GeForce RTX 5050", "score": 27, "pcie": 5, "lanes": 8, "vram": 8, "year": 2025 },
-
+    { "id": "rtx 5090", "name": "GeForce RTX 5090", "score": 130, "pcie": 5, "lanes": 16, "vram": 32, "year": 2025, "conf": "baja" },
+    { "id": "rtx 5080", "name": "GeForce RTX 5080", "score": 82, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025, "conf": "baja" },
+    { "id": "rtx 5070 ti", "name": "GeForce RTX 5070 Ti", "score": 73, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025, "conf": "baja" },
+    { "id": "rtx 5070", "name": "GeForce RTX 5070", "score": 58, "pcie": 5, "lanes": 16, "vram": 12, "year": 2025, "conf": "baja" },
+    { "id": "rtx 5060 ti", "name": "GeForce RTX 5060 Ti", "score": 42, "pcie": 5, "lanes": 8, "vram": 16, "year": 2025, "conf": "baja" },
+    { "id": "rtx 5060", "name": "GeForce RTX 5060", "score": 35, "pcie": 5, "lanes": 8, "vram": 8, "year": 2025, "conf": "baja" },
+    { "id": "rtx 5050", "name": "GeForce RTX 5050", "score": 27, "pcie": 5, "lanes": 8, "vram": 8, "year": 2025, "conf": "baja" },
     { "id": "rtx 4090", "name": "GeForce RTX 4090", "score": 100, "pcie": 4, "lanes": 16, "vram": 24, "year": 2022 },
     { "id": "rtx 4080 super", "name": "GeForce RTX 4080 SUPER", "score": 78, "pcie": 4, "lanes": 16, "vram": 16, "year": 2024 },
     { "id": "rtx 4080", "name": "GeForce RTX 4080", "score": 76, "pcie": 4, "lanes": 16, "vram": 16, "year": 2022 },
@@ -18,7 +37,6 @@
     { "id": "rtx 4070", "name": "GeForce RTX 4070", "score": 49, "pcie": 4, "lanes": 16, "vram": 12, "year": 2023 },
     { "id": "rtx 4060 ti", "name": "GeForce RTX 4060 Ti", "score": 36, "pcie": 4, "lanes": 8, "vram": 8, "year": 2023 },
     { "id": "rtx 4060", "name": "GeForce RTX 4060", "score": 29, "pcie": 4, "lanes": 8, "vram": 8, "year": 2023 },
-
     { "id": "rtx 3090 ti", "name": "GeForce RTX 3090 Ti", "score": 60, "pcie": 4, "lanes": 16, "vram": 24, "year": 2022 },
     { "id": "rtx 3090", "name": "GeForce RTX 3090", "score": 55, "pcie": 4, "lanes": 16, "vram": 24, "year": 2020 },
     { "id": "rtx 3080 ti", "name": "GeForce RTX 3080 Ti", "score": 53, "pcie": 4, "lanes": 16, "vram": 12, "year": 2021 },
@@ -28,7 +46,6 @@
     { "id": "rtx 3060 ti", "name": "GeForce RTX 3060 Ti", "score": 34, "pcie": 4, "lanes": 16, "vram": 8, "year": 2020 },
     { "id": "rtx 3060", "name": "GeForce RTX 3060", "score": 26, "pcie": 4, "lanes": 16, "vram": 12, "year": 2021 },
     { "id": "rtx 3050", "name": "GeForce RTX 3050", "score": 17, "pcie": 4, "lanes": 8, "vram": 8, "year": 2022 },
-
     { "id": "rtx 2080 ti", "name": "GeForce RTX 2080 Ti", "score": 37, "pcie": 3, "lanes": 16, "vram": 11, "year": 2018 },
     { "id": "rtx 2080 super", "name": "GeForce RTX 2080 SUPER", "score": 31, "pcie": 3, "lanes": 16, "vram": 8, "year": 2019 },
     { "id": "rtx 2080", "name": "GeForce RTX 2080", "score": 29, "pcie": 3, "lanes": 16, "vram": 8, "year": 2018 },
@@ -36,7 +53,6 @@
     { "id": "rtx 2070", "name": "GeForce RTX 2070", "score": 24, "pcie": 3, "lanes": 16, "vram": 8, "year": 2018 },
     { "id": "rtx 2060 super", "name": "GeForce RTX 2060 SUPER", "score": 23, "pcie": 3, "lanes": 16, "vram": 8, "year": 2019 },
     { "id": "rtx 2060", "name": "GeForce RTX 2060", "score": 20, "pcie": 3, "lanes": 16, "vram": 6, "year": 2019 },
-
     { "id": "gtx 1660 ti", "name": "GeForce GTX 1660 Ti", "score": 15, "pcie": 3, "lanes": 16, "vram": 6, "year": 2019 },
     { "id": "gtx 1660 super", "name": "GeForce GTX 1660 SUPER", "score": 15, "pcie": 3, "lanes": 16, "vram": 6, "year": 2019 },
     { "id": "gtx 1660", "name": "GeForce GTX 1660", "score": 14, "pcie": 3, "lanes": 16, "vram": 6, "year": 2019 },
@@ -57,10 +73,9 @@
     { "id": "gtx 750 ti", "name": "GeForce GTX 750 Ti", "score": 4, "pcie": 3, "lanes": 16, "vram": 2, "year": 2014 },
     { "id": "gt 730", "name": "GeForce GT 730", "score": 1, "pcie": 2, "lanes": 8, "vram": 2, "year": 2014 },
     { "id": "gt 710", "name": "GeForce GT 710", "score": 0.7, "pcie": 2, "lanes": 8, "vram": 2, "year": 2014 },
-
-    { "id": "rx 9070 xt", "name": "Radeon RX 9070 XT", "score": 75, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025 },
-    { "id": "rx 9070", "name": "Radeon RX 9070", "score": 67, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025 },
-    { "id": "rx 9060 xt", "name": "Radeon RX 9060 XT", "score": 40, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025 },
+    { "id": "rx 9070 xt", "name": "Radeon RX 9070 XT", "score": 75, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025, "conf": "baja" },
+    { "id": "rx 9070", "name": "Radeon RX 9070", "score": 67, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025, "conf": "baja" },
+    { "id": "rx 9060 xt", "name": "Radeon RX 9060 XT", "score": 40, "pcie": 5, "lanes": 16, "vram": 16, "year": 2025, "conf": "baja" },
     { "id": "rx 7900 xtx", "name": "Radeon RX 7900 XTX", "score": 80, "pcie": 4, "lanes": 16, "vram": 24, "year": 2022 },
     { "id": "rx 7900 xt", "name": "Radeon RX 7900 XT", "score": 70, "pcie": 4, "lanes": 16, "vram": 20, "year": 2022 },
     { "id": "rx 7900 gre", "name": "Radeon RX 7900 GRE", "score": 60, "pcie": 4, "lanes": 16, "vram": 16, "year": 2023 },
@@ -93,23 +108,21 @@
     { "id": "rx 470", "name": "Radeon RX 470", "score": 10, "pcie": 3, "lanes": 16, "vram": 4, "year": 2016 },
     { "id": "rx 560", "name": "Radeon RX 560", "score": 5, "pcie": 3, "lanes": 8, "vram": 4, "year": 2017 },
     { "id": "rx 550", "name": "Radeon RX 550", "score": 3, "pcie": 3, "lanes": 8, "vram": 2, "year": 2017 },
-
     { "id": "arc b580", "name": "Intel Arc B580", "score": 30, "pcie": 4, "lanes": 8, "vram": 12, "year": 2024 },
-    { "id": "arc b570", "name": "Intel Arc B570", "score": 26, "pcie": 4, "lanes": 8, "vram": 10, "year": 2025 },
+    { "id": "arc b570", "name": "Intel Arc B570", "score": 26, "pcie": 4, "lanes": 8, "vram": 10, "year": 2025, "conf": "baja" },
     { "id": "arc a770", "name": "Intel Arc A770", "score": 27, "pcie": 4, "lanes": 16, "vram": 16, "year": 2022 },
     { "id": "arc a750", "name": "Intel Arc A750", "score": 25, "pcie": 4, "lanes": 16, "vram": 8, "year": 2022 },
     { "id": "arc a580", "name": "Intel Arc A580", "score": 22, "pcie": 4, "lanes": 16, "vram": 8, "year": 2023 },
     { "id": "arc a380", "name": "Intel Arc A380", "score": 8, "pcie": 4, "lanes": 8, "vram": 6, "year": 2022 },
-
-    { "id": "radeon 890m", "name": "Radeon 890M (integrada)", "score": 10, "integrated": true, "vram": 0, "year": 2024 },
-    { "id": "radeon 780m", "name": "Radeon 780M (integrada)", "score": 9, "integrated": true, "vram": 0, "year": 2023 },
-    { "id": "radeon 760m", "name": "Radeon 760M (integrada)", "score": 7, "integrated": true, "vram": 0, "year": 2023 },
-    { "id": "radeon vega 8", "name": "Radeon Vega 8 (integrada)", "score": 3.5, "integrated": true, "vram": 0, "year": 2018 },
-    { "id": "radeon vega 11", "name": "Radeon Vega 11 (integrada)", "score": 4.5, "integrated": true, "vram": 0, "year": 2018 },
-    { "id": "radeon graphics", "name": "Radeon Graphics (integrada)", "score": 3.5, "integrated": true, "vram": 0, "year": 2020 },
-    { "id": "arc graphics", "name": "Intel Arc Graphics (integrada)", "score": 8, "integrated": true, "vram": 0, "year": 2023 },
-    { "id": "iris xe", "name": "Intel Iris Xe (integrada)", "score": 3.5, "integrated": true, "vram": 0, "year": 2020 },
-    { "id": "uhd graphics", "name": "Intel UHD Graphics (integrada)", "score": 1.5, "integrated": true, "vram": 0, "year": 2017 },
-    { "id": "hd graphics", "name": "Intel HD Graphics (integrada)", "score": 1, "integrated": true, "vram": 0, "year": 2013 }
+    { "id": "radeon 890m", "name": "Radeon 890M (integrada)", "score": 10, "integrated": true, "vram": 0, "year": 2024, "conf": "baja" },
+    { "id": "radeon 780m", "name": "Radeon 780M (integrada)", "score": 9, "integrated": true, "vram": 0, "year": 2023, "conf": "baja" },
+    { "id": "radeon 760m", "name": "Radeon 760M (integrada)", "score": 7, "integrated": true, "vram": 0, "year": 2023, "conf": "baja" },
+    { "id": "radeon vega 8", "name": "Radeon Vega 8 (integrada)", "score": 3.5, "integrated": true, "vram": 0, "year": 2018, "conf": "baja" },
+    { "id": "radeon vega 11", "name": "Radeon Vega 11 (integrada)", "score": 4.5, "integrated": true, "vram": 0, "year": 2018, "conf": "baja" },
+    { "id": "radeon graphics", "name": "Radeon Graphics (integrada)", "score": 3.5, "integrated": true, "vram": 0, "year": 2020, "conf": "baja" },
+    { "id": "arc graphics", "name": "Intel Arc Graphics (integrada)", "score": 8, "integrated": true, "vram": 0, "year": 2023, "conf": "baja" },
+    { "id": "iris xe", "name": "Intel Iris Xe (integrada)", "score": 3.5, "integrated": true, "vram": 0, "year": 2020, "conf": "baja" },
+    { "id": "uhd graphics", "name": "Intel UHD Graphics (integrada)", "score": 1.5, "integrated": true, "vram": 0, "year": 2017, "conf": "baja" },
+    { "id": "hd graphics", "name": "Intel HD Graphics (integrada)", "score": 1, "integrated": true, "vram": 0, "year": 2013, "conf": "baja" }
   ]
 }

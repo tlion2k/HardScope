@@ -31,6 +31,7 @@ const PLAIN = {
   'gpu-unknown': ['No reconocimos tu tarjeta de video', 'Algunas comparaciones no se pudieron hacer.'],
   'cpu-unknown': ['No reconocimos tu procesador con exactitud', 'Algunos resultados pueden ser menos precisos.'],
   'board-unknown': ['No reconocimos el modelo de tu placa', 'Algunas comparaciones no se pudieron hacer.'],
+  'board-inferred': ['No reconocimos el modelo de tu placa', 'Usamos tu procesador para estimar qué admite; algunos datos de la placa pueden faltar.'],
 };
 
 // Textos que dependen de la severidad del hallazgo.
@@ -58,7 +59,7 @@ function plainFor(f) {
 
 function annotate(findings, ctx) {
   const { cpuId, gpu, chipset, platformKey, boardVsGpu, cpuVsGpu, pcie, ram, resolution, resFactor } = ctx;
-  const gpuSource = gpu?.match ? `gpus.json · id «${gpu.match.id}»${gpu.match.laptop ? ' (portátil ×0,8)' : ''}` : 'no está en la base de datos';
+  const gpuSource = gpu?.match ? `gpus.json · id «${gpu.match.id}»${gpu.match.laptop ? ' (portátil ×0,8)' : ''} · confianza ${gpu.match.conf}` : 'no está en la base de datos';
   const cpuSource = cpuId.estimated ? 'estimado por núcleos y frecuencia (modelo no reconocido)' : `base por generación y gama (${cpuId.family?.line || ''} ${cpuId.family?.gen || ''})`.replace(/\s+\)/, ')');
   const res = `${resolution} (factor CPU ×${resFactor})`;
 

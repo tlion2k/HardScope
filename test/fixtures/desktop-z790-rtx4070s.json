@@ -1,0 +1,177 @@
+{
+  "origin": "real",
+  "description": "ASRock Z790 PG Lightning",
+  "captured": "2026-10",
+  "expect": {
+    "chipset": "Z790",
+    "gpuId": "rtx 4070 super",
+    "gpuMaker": "ASUS",
+    "laptop": false,
+    "cpuEstimated": false,
+    "channel": "dual",
+    "ratedSpeed": 5200,
+    "findings": [
+      "ram-xmp",
+      "board-superior",
+      "cpu-gpu-balanced"
+    ],
+    "noFindings": [
+      "os-hdd",
+      "ram-single",
+      "pcie-width"
+    ],
+    "maxCritical": 0
+  },
+  "profile": {
+    "collectedAt": "2026-10-01T00:00:00.000Z",
+    "issues": [],
+    "system": {
+      "manufacturer": "ASRock",
+      "model": "Z790 PG Lightning",
+      "chassis": "Desktop",
+      "laptop": false
+    },
+    "cpu": {
+      "brand": "Intel Core™ i5-14600KF",
+      "manufacturer": "Intel",
+      "cores": 20,
+      "physicalCores": 14,
+      "performanceCores": 20,
+      "efficiencyCores": 0,
+      "speed": 3.5,
+      "speedMax": 3.5,
+      "socket": "LGA1700",
+      "cache": {
+        "l1d": 557056,
+        "l1i": 720896,
+        "l2": 20971520,
+        "l3": 25165824
+      }
+    },
+    "board": {
+      "manufacturer": "ASRock",
+      "model": "Z790 PG Lightning",
+      "version": "",
+      "memSlots": 4,
+      "memMax": 137438953472
+    },
+    "bios": {
+      "vendor": "American Megatrends International, LLC.",
+      "version": "9.01",
+      "releaseDate": "2023-10-10"
+    },
+    "ram": {
+      "total": 34177568768,
+      "available": 14857797632,
+      "free": 14857797632,
+      "modules": [
+        {
+          "size": 17179869184,
+          "type": "DDR5",
+          "configuredSpeed": 4800,
+          "jedecSpeed": 4800,
+          "partNum": "AX5U5200C3816G-BLARB",
+          "manufacturer": "A-DATA Technology",
+          "locator": "Controller0-ChannelA-DIMM1"
+        },
+        {
+          "size": 17179869184,
+          "type": "DDR5",
+          "configuredSpeed": 4800,
+          "jedecSpeed": 4800,
+          "partNum": "AX5U5200C3816G-BLARB",
+          "manufacturer": "A-DATA Technology",
+          "locator": "Controller1-ChannelA-DIMM1"
+        }
+      ],
+      "slots": 4,
+      "maxCapacity": 137438953472
+    },
+    "gpus": [
+      {
+        "name": "NVIDIA GeForce RTX 4070 SUPER",
+        "vendor": "NVIDIA",
+        "vram": 12282,
+        "driverVersion": "617.14",
+        "bus": "PCI",
+        "maker": "ASUS",
+        "pcie": {
+          "curGen": 4,
+          "curWidth": 16,
+          "maxGen": 4,
+          "maxWidth": 16
+        }
+      }
+    ],
+    "displays": [
+      {
+        "model": null,
+        "main": true,
+        "resolutionX": 2560,
+        "resolutionY": 1440,
+        "refreshRate": 200
+      },
+      {
+        "model": null,
+        "main": false,
+        "resolutionX": 2560,
+        "resolutionY": 1440,
+        "refreshRate": 200
+      }
+    ],
+    "disks": [
+      {
+        "name": "WDC WD10EZEX-75WN4A1",
+        "type": "HDD",
+        "bus": "SATA",
+        "size": 1000204886016,
+        "isSystem": false
+      },
+      {
+        "name": "WDC WD10EZEX-75WN4A1",
+        "type": "HDD",
+        "bus": "SATA",
+        "size": 1000204886016,
+        "isSystem": false
+      },
+      {
+        "name": "KINGSTON SKC3000D2048G",
+        "type": "SSD",
+        "bus": "NVMe",
+        "size": 2048408248320,
+        "isSystem": true
+      }
+    ],
+    "volumes": [
+      {
+        "mount": "C:",
+        "size": 2047260102656,
+        "used": 1735059255296,
+        "type": "NTFS"
+      },
+      {
+        "mount": "VOL1",
+        "size": 1000187359232,
+        "used": 71165853696,
+        "type": "NTFS"
+      },
+      {
+        "mount": "VOL2",
+        "size": 1000187359232,
+        "used": 98010034176,
+        "type": "NTFS"
+      }
+    ],
+    "os": {
+      "distro": "Microsoft Windows 11 Pro",
+      "release": "10.0.26200",
+      "build": "26200",
+      "arch": "x64",
+      "hostname": null
+    },
+    "power": {
+      "guid": "381b4222-f694-41f0-9685-ff5bb260df2e",
+      "name": "Equilibrado"
+    }
+  }
+}

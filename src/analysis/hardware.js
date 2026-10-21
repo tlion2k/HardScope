@@ -1,7 +1,14 @@
 ﻿// IdentificaciÃ³n de componentes contra la base de datos local y cÃ¡lculo de puntajes.
 // Todo en la misma escala: "puntaje de GPU" (RTX 4090 = 100 a 1440p).
-const gpuDb = require('../data/gpus.json').gpus;
-const { platforms, chipsets } = require('../data/platforms.json');
+const gpuData = require('../data/gpus.json');
+const platformData = require('../data/platforms.json');
+const gpuDb = gpuData.gpus;
+const { platforms, chipsets } = platformData;
+// Versión y fecha de cada catálogo, para mostrar de dónde sale cada índice.
+const dataInfo = {
+  gpus: { version: gpuData.meta.version, updated: gpuData.meta.updated, count: gpuDb.length, source: gpuData.meta.sources[gpuData.meta.defaults.src] },
+  platforms: { version: platformData.meta.version, updated: platformData.meta.updated, count: Object.keys(chipsets).length },
+};
 
 const PCIE_LANE_GBPS = { 1: 0.25, 2: 0.5, 3: 0.985, 4: 1.969, 5: 3.938 };
 
@@ -25,7 +32,7 @@ function identifyGpu(name) {
   }
   if (!best) return null;
   const laptop = /\blaptop\b/.test(norm);
-  return { ...best, laptop, score: laptop ? +(best.score * 0.8).toFixed(1) : best.score };
+  return { ...best, conf: best.conf || gpuData.meta.defaults.conf, laptop, score: laptop ? +(best.score * 0.8).toFixed(1) : best.score };
 }
 
 function identifyChipset(boardModel = '') {
@@ -179,5 +186,8 @@ module.exports = {
   gpuVendor,
   psuWatts,
   brands: require('../data/brands.json'),
+  dataInfo,
+  gpuMeta: gpuData.meta,
+  platformMeta: platformData.meta,
   MEM_TYPE,
 };

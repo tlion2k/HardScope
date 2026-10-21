@@ -1,0 +1,122 @@
+{
+  "origin": "synthetic",
+  "description": "AM4 antiguo: Windows en HDD, RAM sin XMP y ahorro de energía",
+  "note": "Inventario sintético con el formato real del recolector; no proviene de un equipo físico.",
+  "expect": {
+    "chipset": "B450",
+    "gpuId": "rx 580",
+    "ratedSpeed": 3200,
+    "channel": "dual",
+    "findings": [
+      "ram-xmp",
+      "os-hdd",
+      "power-plan"
+    ],
+    "severities": {
+      "os-hdd": "critical",
+      "ram-xmp": "warning"
+    }
+  },
+  "profile": {
+    "collectedAt": "2026-10-01T00:00:00.000Z",
+    "issues": [],
+    "system": {
+      "manufacturer": "To Be Filled By O.E.M.",
+      "model": "To Be Filled By O.E.M.",
+      "chassis": "Desktop",
+      "laptop": false
+    },
+    "bios": {
+      "vendor": "American Megatrends Inc.",
+      "version": "3.80",
+      "releaseDate": "2020-07-20"
+    },
+    "displays": [
+      {
+        "model": null,
+        "main": true,
+        "resolutionX": 1920,
+        "resolutionY": 1080,
+        "refreshRate": 144
+      }
+    ],
+    "volumes": [
+      {
+        "mount": "C:",
+        "size": 536870912000,
+        "used": 214748364800,
+        "type": "NTFS"
+      }
+    ],
+    "os": {
+      "distro": "Microsoft Windows 11 Home",
+      "release": "10.0.26100",
+      "build": "26100",
+      "arch": "x64",
+      "hostname": null
+    },
+    "power": {
+      "guid": "a1841308-3541-4fab-bc81-f71556f20b4a",
+      "name": "Power saver"
+    },
+    "cpu": {
+      "brand": "AMD Ryzen 5 2600 Six-Core Processor",
+      "manufacturer": "AMD",
+      "cores": 12,
+      "physicalCores": 6,
+      "speed": 3.4
+    },
+    "board": {
+      "manufacturer": "Micro-Star International Co., Ltd.",
+      "model": "B450 TOMAHAWK MAX (MS-7C02)",
+      "version": "1.0"
+    },
+    "ram": {
+      "total": 17179869184,
+      "available": 8589934592,
+      "slots": 4,
+      "maxCapacity": 68719476736,
+      "modules": [
+        {
+          "size": 8589934592,
+          "type": "DDR4",
+          "configuredSpeed": 2133,
+          "partNum": "F4-3200C16-8GVKB",
+          "manufacturer": "G Skill Intl",
+          "locator": "DIMM_A2"
+        },
+        {
+          "size": 8589934592,
+          "type": "DDR4",
+          "configuredSpeed": 2133,
+          "partNum": "F4-3200C16-8GVKB",
+          "manufacturer": "G Skill Intl",
+          "locator": "DIMM_B2"
+        }
+      ]
+    },
+    "gpus": [
+      {
+        "name": "Radeon RX 580 Series",
+        "vendor": "Advanced Micro Devices, Inc.",
+        "vram": 8192,
+        "maker": "Sapphire",
+        "pcie": {
+          "curGen": 3,
+          "curWidth": 16,
+          "maxGen": 3,
+          "maxWidth": 16
+        }
+      }
+    ],
+    "disks": [
+      {
+        "name": "ST1000DM010-2EP102",
+        "type": "HDD",
+        "bus": "SATA",
+        "size": 1073741824000,
+        "isSystem": true
+      }
+    ]
+  }
+}

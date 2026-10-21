@@ -1,5 +1,19 @@
 {
-  "_comment": "platforms: socket y su techo. 'ceiling' = puntaje de GPU (escala de gpus.json) que la plataforma puede alimentar con el mejor CPU que admite. chipsets: gpuPcie = generación PCIe típica del slot x16 principal (puede variar según el modelo exacto de placa).",
+  "meta": {
+    "schema": 1,
+    "version": "2026.10.21",
+    "updated": "2026-10-21",
+    "method": "ceiling = índice de GPU (escala de gpus.json) que la plataforma puede aprovechar con su mejor procesador compatible; estimación interna. gpuPcie = generación PCIe típica del slot x16 principal según el chipset; puede variar por modelo de placa.",
+    "sources": {
+      "estimacion-interna": "Estimación de HardScope a partir de la generación de CPUs que admite cada socket.",
+      "fabricante": "Especificaciones de Intel y AMD para cada chipset y socket."
+    },
+    "defaults": {
+      "ceiling": "estimacion-interna",
+      "specs": "fabricante",
+      "conf": "media"
+    }
+  },
   "platforms": {
     "LGA1155": { "socket": "LGA 1155", "vendor": "Intel", "ceiling": 15, "mem": "DDR3", "year": 2011, "bestCpus": ["Core i7-3770K"], "eol": true },
     "LGA1150": { "socket": "LGA 1150", "vendor": "Intel", "ceiling": 24, "mem": "DDR3", "year": 2013, "bestCpus": ["Core i7-4790K"], "eol": true },
@@ -19,10 +33,11 @@
     "AM5": { "socket": "AM5", "vendor": "AMD", "ceiling": 140, "mem": "DDR5", "year": 2022, "bestCpus": ["Ryzen 7 7800X3D", "Ryzen 7 9800X3D", "Ryzen 9 9950X3D"], "eol": false }
   },
   "modern": {
-    "AMD": { "platform": "AM5", "boards": { "mainstream": "AM5 B650 / B850", "enthusiast": "AM5 X870 / X870E" }, "cpus": ["Ryzen 5 7600X", "Ryzen 5 9600X", "Ryzen 7 7700X", "Ryzen 7 9700X", "Ryzen 9 7900X", "Ryzen 9 9900X", "Ryzen 7 7800X3D", "Ryzen 7 9800X3D"] },
-    "Intel": { "platform": "LGA1851", "boards": { "mainstream": "LGA 1851 B860", "enthusiast": "LGA 1851 Z890" }, "cpus": ["Core Ultra 5 245K", "Core Ultra 7 265K", "Core Ultra 9 285K"] }
+    "AMD": { "platform": "AM5", "boards": {"mainstream": "AM5 B650 / B850", "enthusiast": "AM5 X870 / X870E"}, "cpus": ["Ryzen 5 7600X", "Ryzen 5 9600X", "Ryzen 7 7700X", "Ryzen 7 9700X", "Ryzen 9 7900X", "Ryzen 9 9900X", "Ryzen 7 7800X3D", "Ryzen 7 9800X3D"] },
+    "Intel": { "platform": "LGA1851", "boards": {"mainstream": "LGA 1851 B860", "enthusiast": "LGA 1851 Z890"}, "cpus": ["Core Ultra 5 245K", "Core Ultra 7 265K", "Core Ultra 9 285K"] }
   },
   "chipsets": {
+    "970": { "platform": "AM3", "segment": "mainstream", "gpuPcie": 2 },
     "H61": { "platform": "LGA1155", "segment": "entry", "gpuPcie": 2 },
     "B75": { "platform": "LGA1155", "segment": "mainstream", "gpuPcie": 3 },
     "H77": { "platform": "LGA1155", "segment": "mainstream", "gpuPcie": 3 },
@@ -68,7 +83,6 @@
     "X79": { "platform": "LGA2011", "segment": "enthusiast", "gpuPcie": 3 },
     "X99": { "platform": "LGA2011v3", "segment": "enthusiast", "gpuPcie": 3 },
     "X299": { "platform": "LGA2066", "segment": "enthusiast", "gpuPcie": 3 },
-    "970": { "platform": "AM3", "segment": "mainstream", "gpuPcie": 2 },
     "990FX": { "platform": "AM3", "segment": "enthusiast", "gpuPcie": 2 },
     "A320": { "platform": "AM4a", "segment": "entry", "gpuPcie": 3 },
     "B350": { "platform": "AM4a", "segment": "mainstream", "gpuPcie": 3 },

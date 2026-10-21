@@ -99,6 +99,7 @@ async function collect() {
         partNum: m.partNum,
         manufacturer: m.manufacturer,
         locator: m.locator,
+        bank: m.bank, // en placas AMD el canal viene aquí ("P0 CHANNEL A")
       }))
     : asArray(memLayout).map((m) => ({
         size: m.size,

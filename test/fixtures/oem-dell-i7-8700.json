@@ -1,0 +1,117 @@
+{
+  "origin": "synthetic",
+  "description": "Equipo OEM Dell con placa sin chipset en el nombre",
+  "note": "Inventario sintético con el formato real del recolector; no proviene de un equipo físico.",
+  "expect": {
+    "chipset": null,
+    "gpuId": "gtx 1060",
+    "findings": [
+      "board-inferred",
+      "ram-single",
+      "os-sata",
+      "hdd-games"
+    ],
+    "channel": "single"
+  },
+  "profile": {
+    "collectedAt": "2026-10-01T00:00:00.000Z",
+    "issues": [],
+    "system": {
+      "manufacturer": "Dell Inc.",
+      "model": "OptiPlex 7060",
+      "chassis": "Tower",
+      "laptop": false
+    },
+    "bios": {
+      "vendor": "Dell Inc.",
+      "version": "1.24.0",
+      "releaseDate": "2023-01-10"
+    },
+    "displays": [
+      {
+        "model": null,
+        "main": true,
+        "resolutionX": 1920,
+        "resolutionY": 1080,
+        "refreshRate": 144
+      }
+    ],
+    "volumes": [
+      {
+        "mount": "C:",
+        "size": 536870912000,
+        "used": 214748364800,
+        "type": "NTFS"
+      }
+    ],
+    "os": {
+      "distro": "Microsoft Windows 11 Home",
+      "release": "10.0.26100",
+      "build": "26100",
+      "arch": "x64",
+      "hostname": null
+    },
+    "power": {
+      "guid": "381b4222-f694-41f0-9685-ff5bb260df2e",
+      "name": "Balanced"
+    },
+    "cpu": {
+      "brand": "Intel® Core™ i7-8700 CPU @ 3.20GHz",
+      "manufacturer": "Intel",
+      "cores": 12,
+      "physicalCores": 6,
+      "speed": 3.2
+    },
+    "board": {
+      "manufacturer": "Dell Inc.",
+      "model": "0C96W1",
+      "version": "A00"
+    },
+    "ram": {
+      "total": 8589934592,
+      "available": 2147483648,
+      "slots": 4,
+      "maxCapacity": 68719476736,
+      "modules": [
+        {
+          "size": 8589934592,
+          "type": "DDR4",
+          "configuredSpeed": 2666,
+          "partNum": "M378A1K43CB2-CTD",
+          "manufacturer": "Samsung",
+          "locator": "DIMM1"
+        }
+      ]
+    },
+    "gpus": [
+      {
+        "name": "NVIDIA GeForce GTX 1060 6GB",
+        "vendor": "NVIDIA",
+        "vram": 6144,
+        "maker": "Dell",
+        "pcie": {
+          "curGen": 3,
+          "curWidth": 16,
+          "maxGen": 3,
+          "maxWidth": 16
+        }
+      }
+    ],
+    "disks": [
+      {
+        "name": "SK hynix SC311 SATA 256GB",
+        "type": "SSD",
+        "bus": "SATA",
+        "size": 274877906944,
+        "isSystem": true
+      },
+      {
+        "name": "TOSHIBA DT01ACA100",
+        "type": "HDD",
+        "bus": "SATA",
+        "size": 1073741824000,
+        "isSystem": false
+      }
+    ]
+  }
+}

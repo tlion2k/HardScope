@@ -119,15 +119,47 @@ src/
     brands.json      marcas y series para los perfiles (placas, fuentes, RAM, SSD, ensambladoras)
   renderer/    interfaz (HTML, CSS y JS sin paso de compilación)
 scripts/
-  setup.ps1      instalación automática del entorno (lo llama setup.cmd)
-test/          pruebas con node:test
+  setup.ps1          instalación automática del entorno (lo llama setup.cmd)
+  validate-data.js   validador de los catálogos (npm run validate)
+  format-data.js     formato de los catálogos, una línea por entrada
+  capture-fixture.js captura anonimizada del inventario del PC (npm run fixture)
+test/
+  engine.test.js     reglas, planificador y perfiles
+  fixtures.test.js   análisis sobre inventarios completos
+  data.test.js       validador de catálogos
+  fixtures/          inventarios: 1 real anonimizado y 5 sintéticos
 ```
 
-### Añadir hardware nuevo
+### Base de datos: procedencia y validación
 
-- **GPU nueva**: agrega una entrada en `src/data/gpus.json` (`id` en minúsculas tal como aparece en el nombre, `score` en la escala donde RTX 4090 = 100).
+Cada catálogo de `src/data` tiene un bloque `meta` con versión, fecha de revisión, método y fuentes. Los índices de GPU son **aproximaciones a partir de reseñas públicas** (no medidos por HardScope) y cada entrada tiene una confianza (`alta`, `media` por defecto o `baja` para integradas y modelos de 2025). La vista Developer muestra la versión, la fuente y la confianza de tu tarjeta.
+
+- **GPU nueva**: agrega una línea en `src/data/gpus.json` (`id` en minúsculas tal como aparece en el nombre, `score` en la escala RTX 4090 = 100, `pcie`, `lanes`, `vram`, `year` y, si corresponde, `conf`).
 - **Chipset nuevo**: agrégalo en `src/data/platforms.json` → `chipsets`, apuntando a su plataforma.
-- **Regla nueva**: añade un `add({ id, severity, component, title, detail, action })` en `src/analysis/engine.js` y una prueba en `test/`.
+- **Regla nueva**: añade un `add({ id, severity, component, title, detail, action })` en `src/analysis/engine.js`, su texto simple en `src/analysis/explain.js` y una prueba en `test/`.
+- Después de editar, ejecuta el validador y el formateador:
+
+  ```bash
+  npm run validate
+  ```
+
+  ```bash
+  npm run format-data
+  ```
+
+  `validate` detecta ids duplicados o que nunca coincidirían con el nombre, valores fuera de rango, chipsets que apuntan a plataformas inexistentes, procesadores no reconocidos y catálogos sin revisar hace más de un año. GitHub Actions lo ejecuta antes de compilar.
+
+### Inventarios de prueba (equipos reales anonimizados)
+
+`test/fixtures/` contiene inventarios completos con el formato real del recolector. Cada uno indica su origen (`real` o `synthetic`) y un bloque `expect` con los hechos conocidos del equipo; las pruebas analizan cada inventario en todas las combinaciones de uso, resolución y perfil.
+
+Para aportar el inventario de tu PC:
+
+```bash
+npm run fixture -- mi-pc
+```
+
+Crea `test/fixtures/mi-pc.json` sin el nombre del equipo, sin nombres de monitores ni rutas de unidades, y con la fecha reducida a año y mes. Revísalo, completa `expect` con lo que sabes que es cierto (chipset, GPU, canal de RAM, hallazgos esperados) y envíalo en un pull request.
 
 ### Publicar una versión
 

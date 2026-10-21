@@ -8,7 +8,7 @@ const { annotate } = require('./explain');
 
 const SEVERITY_WEIGHT = { critical: 18, warning: 8, tip: 2, ok: 0 };
 // Avisos que sólo indican que faltan datos: no deben bajar el índice del equipo.
-const NO_PENALTY = new Set(['gpu-unknown', 'cpu-unknown', 'board-unknown']);
+const NO_PENALTY = new Set(['gpu-unknown', 'cpu-unknown', 'board-unknown', 'board-inferred']);
 const LAPTOP_ACTION = 'En un portátil el procesador y la tarjeta de video van soldados a la placa y no se pueden cambiar. Para rendir más: usa el modo de rendimiento del fabricante, juega conectado a la corriente y ajusta la calidad gráfica.';
 const RES_FACTOR = { '1080p': 0.8, '1440p': 1.0, '4k': 1.4 };
 const RAM_TARGETS = {
@@ -122,6 +122,15 @@ function analyze(profile, settings = {}) {
     });
   }
 
+  if (!laptop && !chipset && platform) {
+    add({
+      id: 'board-inferred', severity: 'tip', component: 'board',
+      title: 'Modelo de placa no reconocido: plataforma deducida del procesador',
+      detail: `"${profile.board?.manufacturer || ''} ${profile.board?.model || ''}" no indica su chipset (común en equipos de marca u OEM). Se usó el socket del procesador (${platform.socket}); no se conoce la generación PCIe del slot de la tarjeta.`,
+      action: 'Busca el modelo de la placa o del equipo en la web del fabricante para conocer su chipset, PCIe y procesadores compatibles.',
+    });
+  }
+
   // ---------- Bus PCIe ----------
   const pcie = analyzePcie(gpu, chipset, add);
 
@@ -221,7 +230,7 @@ function analyze(profile, settings = {}) {
     healthWeights: SEVERITY_WEIGHT,
     laptop,
     dataIssues: profile.issues || [],
-    db: { gpus: hw.gpuDb.length, chipsets: Object.keys(hw.chipsets).length },
+    db: { gpus: hw.gpuDb.length, chipsets: Object.keys(hw.chipsets).length, version: hw.dataInfo.gpus.version, updated: hw.dataInfo.gpus.updated, source: hw.dataInfo.gpus.source },
     counts: countBy(findings),
     components: {
       cpu: { ...cpuId, effScore: cpuEff },
@@ -337,7 +346,7 @@ function analyzeRam(profile, usage, cpuId, gpu, add) {
 function ramChannel(modules) {
   if (!modules.length) return 'unknown';
   const keys = modules.map((m) => {
-    const loc = String(m.locator || '');
+    const loc = `${m.locator || ''} ${m.bank || ''}`.trim();
     const ch = loc.match(/channel\s*([a-h])/i) || loc.match(/dimm[\s_-]?([a-h])\d/i) || loc.match(/^([a-h])\d$/i);
     if (!ch) return null;
     const ctrl = loc.match(/controller\s*(\d)/i);
