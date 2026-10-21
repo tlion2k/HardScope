@@ -15,7 +15,7 @@
   "license": "MIT",
   "type": "commonjs",
   "hardscope": {
-    "repo": null
+    "repo": "tlion2k/HardScope"
   },
   "build": {
     "appId": "com.hardscope.app",
