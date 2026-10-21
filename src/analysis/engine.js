@@ -1,6 +1,7 @@
 // Motor de diagnóstico: recibe el perfil de hardware recolectado y devuelve
 // puntajes, comparaciones (placa vs GPU, CPU vs GPU, PCIe) y hallazgos con severidad.
 const hw = require('./hardware');
+const { planUpgrades } = require('./upgrade');
 
 const SEVERITY_WEIGHT = { critical: 18, warning: 8, tip: 2, ok: 0 };
 const RES_FACTOR = { '1080p': 0.8, '1440p': 1.0, '4k': 1.4 };
@@ -179,6 +180,8 @@ function analyze(profile, settings = {}) {
     add({ id: 'cpu-unknown', severity: 'tip', component: 'cpu', title: 'Procesador no reconocido con precisión', detail: `El puntaje de "${cpuId.name}" se estimó a partir de núcleos y frecuencia.`, action: 'Los resultados de equilibrio CPU/GPU son aproximados.' });
   }
 
+  const upgrades = planUpgrades({ cpuId, cpuEff, gpu, ceiling, platformKey, platform, chipset, resFactor, resolution, usage, findings, ram });
+
   // ---------- Puntaje global ----------
   const penalty = findings.reduce((s, f) => s + SEVERITY_WEIGHT[f.severity], 0);
   const health = Math.max(5, 100 - penalty);
@@ -198,6 +201,7 @@ function analyze(profile, settings = {}) {
       storage,
     },
     balance: { boardVsGpu, cpuVsGpu, pcie },
+    upgrades,
     findings,
   };
 }

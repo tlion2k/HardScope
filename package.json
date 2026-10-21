@@ -1,7 +1,7 @@
 {
   "name": "hardscope",
   "productName": "HardScope",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Analizador de hardware y cuellos de botella para PC: compara placa madre, tarjeta de video, CPU, RAM y discos, y da consejos de mejora.",
   "main": "src/main/main.js",
   "scripts": {

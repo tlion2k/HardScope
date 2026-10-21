@@ -2,7 +2,7 @@
   "_comment": "platforms: socket y su techo. 'ceiling' = puntaje de GPU (escala de gpus.json) que la plataforma puede alimentar con el mejor CPU que admite. chipsets: gpuPcie = generación PCIe típica del slot x16 principal (puede variar según el modelo exacto de placa).",
   "platforms": {
     "LGA1155": { "socket": "LGA 1155", "vendor": "Intel", "ceiling": 15, "mem": "DDR3", "year": 2011, "bestCpus": ["Core i7-3770K"], "eol": true },
-    "LGA1150": { "socket": "LGA 1150", "vendor": "Intel", "ceiling": 22, "mem": "DDR3", "year": 2013, "bestCpus": ["Core i7-4790K"], "eol": true },
+    "LGA1150": { "socket": "LGA 1150", "vendor": "Intel", "ceiling": 24, "mem": "DDR3", "year": 2013, "bestCpus": ["Core i7-4790K"], "eol": true },
     "LGA1151": { "socket": "LGA 1151 (6ª/7ª gen)", "vendor": "Intel", "ceiling": 32, "mem": "DDR4", "year": 2015, "bestCpus": ["Core i7-7700K"], "eol": true },
     "LGA1151v2": { "socket": "LGA 1151 v2 (8ª/9ª gen)", "vendor": "Intel", "ceiling": 48, "mem": "DDR4", "year": 2017, "bestCpus": ["Core i7-9700K", "Core i9-9900K"], "eol": true },
     "LGA1200": { "socket": "LGA 1200 (10ª gen)", "vendor": "Intel", "ceiling": 52, "mem": "DDR4", "year": 2020, "bestCpus": ["Core i7-10700K", "Core i9-10900K"], "eol": true },
@@ -13,10 +13,10 @@
     "LGA2011v3": { "socket": "LGA 2011-3 (X99)", "vendor": "Intel", "ceiling": 34, "mem": "DDR4", "year": 2014, "bestCpus": ["Core i7-6950X"], "eol": true },
     "LGA2066": { "socket": "LGA 2066 (X299)", "vendor": "Intel", "ceiling": 48, "mem": "DDR4", "year": 2017, "bestCpus": ["Core i9-10980XE"], "eol": true },
     "AM3": { "socket": "AM3+", "vendor": "AMD", "ceiling": 12, "mem": "DDR3", "year": 2011, "bestCpus": ["FX-8350"], "eol": true },
-    "AM4a": { "socket": "AM4 (1ª gen chipset)", "vendor": "AMD", "ceiling": 55, "mem": "DDR4", "year": 2017, "bestCpus": ["Ryzen 7 5700X3D", "Ryzen 7 5800X3D"], "eol": true, "note": "Requiere BIOS actualizada para Ryzen 5000" },
-    "AM4b": { "socket": "AM4 (2ª gen chipset)", "vendor": "AMD", "ceiling": 65, "mem": "DDR4", "year": 2018, "bestCpus": ["Ryzen 7 5700X3D", "Ryzen 7 5800X3D"], "eol": true, "note": "Requiere BIOS actualizada para Ryzen 5000" },
-    "AM4c": { "socket": "AM4 (3ª gen chipset)", "vendor": "AMD", "ceiling": 75, "mem": "DDR4", "year": 2019, "bestCpus": ["Ryzen 7 5700X3D", "Ryzen 7 5800X3D"], "eol": true },
-    "AM5": { "socket": "AM5", "vendor": "AMD", "ceiling": 135, "mem": "DDR5", "year": 2022, "bestCpus": ["Ryzen 7 7800X3D", "Ryzen 7 9800X3D", "Ryzen 9 9950X3D"], "eol": false }
+    "AM4a": { "socket": "AM4 (1ª gen chipset)", "vendor": "AMD", "ceiling": 70, "mem": "DDR4", "year": 2017, "bestCpus": ["Ryzen 7 5700X3D", "Ryzen 7 5800X3D"], "eol": true, "note": "Requiere BIOS actualizada para Ryzen 5000" },
+    "AM4b": { "socket": "AM4 (2ª gen chipset)", "vendor": "AMD", "ceiling": 78, "mem": "DDR4", "year": 2018, "bestCpus": ["Ryzen 7 5700X3D", "Ryzen 7 5800X3D"], "eol": true, "note": "Requiere BIOS actualizada para Ryzen 5000" },
+    "AM4c": { "socket": "AM4 (3ª gen chipset)", "vendor": "AMD", "ceiling": 85, "mem": "DDR4", "year": 2019, "bestCpus": ["Ryzen 7 5700X3D", "Ryzen 7 5800X3D"], "eol": true },
+    "AM5": { "socket": "AM5", "vendor": "AMD", "ceiling": 140, "mem": "DDR5", "year": 2022, "bestCpus": ["Ryzen 7 7800X3D", "Ryzen 7 9800X3D", "Ryzen 9 9950X3D"], "eol": false }
   },
   "chipsets": {
     "H61": { "platform": "LGA1155", "segment": "entry", "gpuPcie": 2 },

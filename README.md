@@ -21,6 +21,7 @@ HardScope revisa tu equipo, compara la **placa madre con la tarjeta de video** y
 - **RAM**: cantidad según el uso (juegos, creación u oficina), canal simple o doble, módulos mezclados, ranuras libres y RAM que no corre a su velocidad nominal (XMP/EXPO desactivado; la velocidad se lee del número de parte).
 - **Almacenamiento**: Windows en HDD, SSD SATA frente a NVMe y poco espacio libre.
 - **Sistema**: plan de energía en ahorro y BIOS antigua.
+- **Próxima mejora**: simula paso a paso qué actualizar (GPU, CPU compatible con tu placa o una plataforma nueva) para ganar rendimiento **sin crear un cuello de botella nuevo**. Muestra la ganancia estimada, alternativas (incluida una opción económica), el equilibrio antes y después de cada paso, y primero las mejoras gratis o baratas (XMP, doble canal, SSD).
 - **Monitor en vivo**: uso de CPU (total y por hilo), GPU, RAM, VRAM y temperatura de la GPU, con diagnóstico en tiempo real (*"Cuello de botella de CPU ahora mismo"*).
 - **Reporte exportable** en HTML.
 
@@ -49,6 +50,7 @@ src/
   analysis/    motor de diagnóstico (sin dependencias de Electron, se puede probar con node)
     hardware.js      identificación de GPU, CPU, chipset y RAM
     engine.js        reglas, severidades y consejos
+    upgrade.js       planificador de la próxima mejora
   data/        base de datos editable
     gpus.json        GPUs: puntaje, PCIe, carriles y VRAM
     platforms.json   chipsets y plataformas: PCIe, socket, techo y mejores CPUs

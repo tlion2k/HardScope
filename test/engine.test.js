@@ -44,7 +44,7 @@ test('equipo equilibrado no genera alertas crÃ­ticas', () => {
 });
 
 test('placa vieja con GPU de gama alta: la placa no aprovecha la tarjeta', () => {
-  const r = analyze(profile({ board: { model: 'PRIME A320M-K' }, cpu: { brand: 'AMD Ryzen 5 1600', cores: 12, physicalCores: 6 }, gpus: [{ name: 'NVIDIA GeForce RTX 4090', vram: 24576 }] }));
+  const r = analyze(profile({ board: { model: 'PRIME A320M-K' }, cpu: { brand: 'AMD Ryzen 5 1600', cores: 12, physicalCores: 6 }, gpus: [{ name: 'NVIDIA GeForce RTX 5090', vram: 32768 }] }));
   assert.equal(r.balance.boardVsGpu.verdict, 'gpu');
   assert.equal(ids(r)['board-limits-gpu'], 'critical');
   assert.equal(ids(r)['cpu-bottleneck'], 'critical');
@@ -84,4 +84,33 @@ test('monitor en vivo detecta cuello de botella de CPU', () => {
   const s = Array(5).fill({ cpu: 70, cpuMaxCore: 99, ram: 60, gpu: 55 });
   assert.equal(liveBottleneck(s).state, 'cpu-bound');
   assert.equal(liveBottleneck(Array(5).fill({ cpu: 40, cpuMaxCore: 60, ram: 50, gpu: 98 })).state, 'gpu-bound');
+});
+
+test('plan de mejora: GPU débil en plataforma moderna -> cambiar GPU y queda equilibrado', () => {
+  const r = analyze(profile({ board: { model: 'B650 AORUS ELITE' }, cpu: { brand: 'AMD Ryzen 7 7700X', cores: 16, physicalCores: 8 }, gpus: [{ name: 'NVIDIA GeForce GTX 1650', vram: 4096 }] }));
+  const [first] = r.upgrades.steps;
+  assert.equal(first.kind, 'gpu');
+  assert.ok(first.gainPct > 100);
+  assert.equal(first.after.balanced, true);
+  assert.ok(first.after.gpu <= first.before.cpu * 1.08, 'la GPU sugerida no debe superar al CPU');
+});
+
+test('plan de mejora: CPU que frena a la GPU -> primero el procesador compatible', () => {
+  const r = analyze(profile({ cpu: { brand: 'AMD Ryzen 5 3600', cores: 12, physicalCores: 6 }, gpus: [{ name: 'NVIDIA GeForce RTX 4070 SUPER', vram: 12288 }] }));
+  assert.equal(r.upgrades.steps[0].kind, 'cpu');
+  assert.match(r.upgrades.steps[0].pick, /5700X3D|5800X3D/);
+});
+
+test('plan de mejora: plataforma agotada -> cambio de placa', () => {
+  const r = analyze(profile({ board: { model: 'Z97-A' }, cpu: { brand: 'Intel Core i7-4790K', cores: 8, physicalCores: 4 }, gpus: [{ name: 'NVIDIA GeForce RTX 3060', vram: 12288 }], ram: { total: 16 * GB, slots: 4, modules: [{ size: 8 * GB, type: 'DDR3', configuredSpeed: 1600 }, { size: 8 * GB, type: 'DDR3', configuredSpeed: 1600 }] } }));
+  const step = r.upgrades.steps[0];
+  assert.equal(step.kind, 'platform');
+  assert.match(step.note, /DDR5/);
+});
+
+test('plan de mejora: las mejoras gratis van primero', () => {
+  const r = analyze(profile({ ram: { total: 16 * GB, slots: 4, modules: [{ size: 16 * GB, type: 'DDR4', configuredSpeed: 2133, partNum: 'KF432C16BB/16' }] } }));
+  const q = r.upgrades.quickFixes;
+  assert.equal(q[0].cost, 'Gratis');
+  assert.ok(q.some((x) => x.id === 'ram-single'));
 });

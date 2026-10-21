@@ -126,6 +126,7 @@ function apply({ profile, report }) {
   renderOverview();
   renderFindings();
   renderBalance();
+  renderUpgrade();
   renderLive();
   renderComponents();
 }
@@ -194,6 +195,11 @@ function renderOverview() {
         </div>
       </div>
     </div>
+    ${
+      r.upgrades.steps[0]
+        ? `<div class="next-banner" id="nextBanner">${svg('<path d="M12 19V5m-6 6 6-6 6 6"/>')}<div><small>Tu próxima mejora</small><b>${esc(r.upgrades.steps[0].pick)}</b></div><span class="num">+${r.upgrades.steps[0].gainPct}%</span>${svg('<path d="m9 6 6 6-6 6"/>')}</div>`
+        : ''
+    }
     <div class="comp-grid">
       ${cards
         .map((x) => {
@@ -214,6 +220,7 @@ function renderOverview() {
     const bar = $('#page-overview .gauge .bar');
     if (bar) bar.style.strokeDashoffset = bar.dataset.target;
   });
+  $('#nextBanner')?.addEventListener('click', () => go('upgrade'));
   $('#page-overview').querySelectorAll('.comp').forEach((el) =>
     el.addEventListener('click', () => {
       if (el.dataset.go === 'findings') {
@@ -346,6 +353,72 @@ function renderBalance() {
       </div>
     </div>
     ${recs.length ? `<div class="page-head" style="margin-top:24px"><h1 style="font-size:20px">Recomendaciones para placa, GPU y CPU</h1></div>${recs.map(findingHtml).join('')}` : ''}`;
+}
+
+// ---------------- Próxima mejora ----------------
+const STEP_ICON = { gpu: COMP.gpu.icon, cpu: COMP.cpu.icon, platform: COMP.board.icon };
+const LIMITER = { cpu: 'el procesador', gpu: 'la tarjeta de video', board: 'la placa' };
+
+function balanceBars(snap, max) {
+  const row = (label, v, cls) => (v == null ? '' : `<div class="bb-row"><span>${label}</span><div class="bb-track"><i class="${cls}" style="width:${Math.min(100, (v / max) * 100)}%"></i></div><b class="num">${v}</b></div>`);
+  return row('Procesador', snap.cpu, 'c-cpu') + row('Tarjeta de video', snap.gpu, 'c-gpu') + row('Techo de la placa', snap.ceiling, 'c-board');
+}
+const afterBadge = (snap) =>
+  snap.balanced
+    ? `<span class="chip sev-ok tone">${svg(SEV.ok.icon)}Sin cuello de botella</span>`
+    : `<span class="chip sev-warning tone">${svg(SEV.warning.icon)}Luego limitará ${LIMITER[snap.limiter]}</span>`;
+
+function renderUpgrade() {
+  const u = state.report.upgrades;
+  const next = u.steps[0];
+  const all = [u.current, ...u.steps.map((s) => s.after)].filter(Boolean);
+  const max = Math.max(40, ...all.flatMap((s) => [s.cpu, s.gpu, s.ceiling || 0])) * 1.05;
+
+  const quick = u.quickFixes.length
+    ? `<div class="card" style="margin-bottom:16px"><h3>Antes de gastar dinero</h3>
+        ${u.quickFixes.map((q) => `<div class="qf"><span class="cost ${q.cost === 'Gratis' ? 'free' : ''}">${q.cost}</span><div><b>${esc(q.title)}</b><div class="muted">${esc(q.action || '')}</div></div></div>`).join('')}
+      </div>`
+    : '';
+
+  const hero = next
+    ? `<div class="up-hero">
+        <div class="up-main">
+          <div class="kicker">Siguiente actualización recomendada · ${esc(next.title)}</div>
+          <div class="up-pick"><div class="ic">${svg(STEP_ICON[next.kind])}</div><h2>${esc(next.pick)}</h2></div>
+          <div class="up-gain">${next.gainPct < 5 ? '<b class="num">Base</b><span>prepara el siguiente paso</span>' : `<b class="num">+${next.gainPct}%</b><span>de rendimiento estimado</span>`}${afterBadge(next.after)}</div>
+          <p>${esc(next.reason)}</p>
+          ${next.alternatives.length ? `<div class="alts"><small>Alternativas sin cuello de botella:</small>${next.alternatives.map((a) => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}
+          ${next.note ? `<p class="note">${svg(SEV.tip.icon)}<span>${esc(next.note)}</span></p>` : ''}
+        </div>
+        <div class="up-compare">
+          <h3>Ahora</h3>${balanceBars(next.before, max)}
+          <h3 style="margin-top:18px">Después de la mejora</h3>${balanceBars(next.after, max)}
+        </div>
+      </div>`
+    : `<div class="verdict tone sev-ok" style="border-color:color-mix(in srgb,var(--c) 40%,transparent);background:color-mix(in srgb,var(--c) 7%,transparent)"><div class="big">${svg(SEV.ok.icon)}</div><div><h2>No hay una mejora pendiente</h2><p>${esc(u.final)}</p></div></div>`;
+
+  const road =
+    u.steps.length > 1
+      ? `<div class="page-head" style="margin-top:26px"><h1 style="font-size:20px">Ruta de mejora completa</h1><p>Orden recomendado para que en cada paso ningún componente frene a los demás.</p></div>
+        <div class="road">${u.steps
+          .map(
+            (s, i) => `<div class="road-step">
+              <div class="road-n num">${i + 1}</div>
+              <div class="card">
+                <div class="road-top"><div><small class="muted">${esc(s.title)}</small><h4>${esc(s.pick)}</h4></div><b class="num gain">${s.gainPct < 5 ? 'Base' : `+${s.gainPct}%`}</b></div>
+                <p class="muted" style="margin:6px 0 10px">${esc(s.reason)}</p>
+                ${s.note ? `<p class="note">${svg(SEV.tip.icon)}<span>${esc(s.note)}</span></p>` : ''}
+                <div class="road-foot">${afterBadge(s.after)}<span class="muted num">CPU ${s.after.cpu} · GPU ${s.after.gpu}${s.after.ceiling ? ` · Placa ${s.after.ceiling}` : ''}</span></div>
+              </div>
+            </div>`
+          )
+          .join('')}</div>`
+      : '';
+
+  $('#page-upgrade').innerHTML = `
+    <div class="page-head"><h1>Tu próxima mejora</h1><p>Qué conviene actualizar ahora para ganar rendimiento sin crear un cuello de botella nuevo (${labelUsage()} a ${esc(state.report.settings.resolution)}).</p></div>
+    ${quick}${hero}${road}
+    ${u.steps.length ? `<p class="muted" style="margin-top:18px">${esc(u.final)} Los porcentajes son estimaciones de rendimiento en juegos.</p>` : ''}`;
 }
 
 // ---------------- Monitor en vivo ----------------

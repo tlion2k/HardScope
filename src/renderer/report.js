@@ -27,6 +27,13 @@ table{width:100%;border-collapse:collapse;margin:18px 0 28px}td{padding:8px 10px
 <div class="muted">${esc(profile.os.hostname)} · ${new Date(profile.collectedAt).toLocaleString()} · ${esc(report.settings.usage)} a ${esc(report.settings.resolution)}</div>
 <p><span class="score">${report.health}/100</span><br><span class="muted">Puntaje de salud del equipo</span></p>
 <table>${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>
+${
+  report.upgrades.steps.length
+    ? `<h2>Próxima mejora</h2>${report.upgrades.steps
+        .map((s, i) => `<div class="f" style="border-left-color:#8b5cf6"><b class="k" style="color:#c4b5fd">Paso ${i + 1} · ${esc(s.title)} · +${s.gainPct}%</b><h3>${esc(s.pick)}</h3><p>${esc(s.reason)}</p>${s.alternatives.length ? `<p class="muted">Alternativas: ${esc(s.alternatives.join(', '))}</p>` : ''}</div>`)
+        .join('')}<p class="muted">${esc(report.upgrades.final)}</p>`
+    : ''
+}
 <h2>Diagnóstico</h2>
 ${report.findings
   .map((f) => `<div class="f" style="border-left-color:${COLORS[f.severity]}"><b class="k" style="color:${COLORS[f.severity]}">${LABELS[f.severity]}</b><h3>${esc(f.title)}</h3><p>${esc(f.detail)}</p>${f.action ? `<p><b>Qué hacer:</b> ${esc(f.action)}</p>` : ''}</div>`)
