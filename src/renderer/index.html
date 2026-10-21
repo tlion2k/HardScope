@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'" />
+    <title>HardScope</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+
+    <header class="titlebar">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" class="logo" aria-hidden="true">
+          <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee" /><stop offset="1" stop-color="#8b5cf6" /></linearGradient></defs>
+          <rect x="3" y="3" width="26" height="26" rx="8" fill="none" stroke="url(#lg)" stroke-width="2.4" />
+          <path d="M9 19h4l2-7 3 11 2-6h3" fill="none" stroke="url(#lg)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>Hard<b>Scope</b></span>
+      </div>
+      <div class="title-status" id="titleStatus"></div>
+    </header>
+
+    <nav class="sidebar" id="nav">
+      <button data-page="overview" class="active"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z" /></svg><span>Resumen</span></button>
+      <button data-page="findings"><svg viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm0 6v6m0 3v.01" /></svg><span>Diagnóstico</span><i class="badge" id="navBadge"></i></button>
+      <button data-page="balance"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-3 7a4 4 0 0 0 6 0zM19 7l-3 7a4 4 0 0 0 6 0zM8 21h8" /></svg><span>Placa vs GPU</span></button>
+      <button data-page="live"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4" /></svg><span>Monitor en vivo</span></button>
+      <button data-page="components"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6zM9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4M9.5 9.5h5v5h-5z" /></svg><span>Componentes</span></button>
+      <div class="spacer"></div>
+      <button data-page="about"><svg viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-14v.01M11 12h1v5h1" /></svg><span>Acerca de</span></button>
+    </nav>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="seg" id="usageSeg" role="group" aria-label="Uso del equipo">
+          <button data-v="gaming" class="on">Juegos</button><button data-v="creation">Creación</button><button data-v="office">Oficina</button>
+        </div>
+        <div class="seg" id="resSeg" role="group" aria-label="Resolución objetivo">
+          <button data-v="1080p">1080p</button><button data-v="1440p" class="on">1440p</button><button data-v="4k">4K</button>
+        </div>
+        <div class="grow"></div>
+        <button class="btn ghost" id="exportBtn" disabled><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3" /></svg>Exportar</button>
+        <button class="btn primary" id="scanBtn"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" /></svg>Analizar de nuevo</button>
+      </div>
+
+      <section id="loading" class="loading">
+        <div class="scanner"><div class="ring"></div><div class="ring r2"></div><div class="core"></div></div>
+        <h2>Analizando tu equipo…</h2>
+        <p id="loadingStep">Leyendo procesador, placa, memoria, tarjeta de video y discos</p>
+      </section>
+
+      <section class="page" id="page-overview"></section>
+      <section class="page" id="page-findings"></section>
+      <section class="page" id="page-balance"></section>
+      <section class="page" id="page-live"></section>
+      <section class="page" id="page-components"></section>
+      <section class="page" id="page-about"></section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

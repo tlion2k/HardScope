@@ -1,0 +1,48 @@
+{
+  "name": "hardscope",
+  "productName": "HardScope",
+  "version": "1.0.0",
+  "description": "Analizador de hardware y cuellos de botella para PC: compara placa madre, tarjeta de video, CPU, RAM y discos, y da consejos de mejora.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/engine.test.js",
+    "dist": "electron-builder --win",
+    "dist:dir": "electron-builder --win --dir"
+  },
+  "keywords": ["hardware", "bottleneck", "cuello de botella", "pc", "gpu", "motherboard", "electron"],
+  "author": "HardScope",
+  "license": "MIT",
+  "type": "commonjs",
+  "hardscope": {
+    "repo": null
+  },
+  "build": {
+    "appId": "com.hardscope.app",
+    "productName": "HardScope",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["src/**/*", "build/icon.png", "package.json"],
+    "asarUnpack": ["src/main/*.ps1"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "HardScope"
+    },
+    "portable": { "artifactName": "HardScope-${version}-portable.exe" }
+  },
+  "dependencies": {
+    "systeminformation": "^5.33.16"
+  },
+  "devDependencies": {
+    "electron": "^38.8.6",
+    "electron-builder": "^26.15.3"
+  },
+  "allowScripts": {
+    "electron@38.8.6": true,
+    "electron-winstaller@5.4.0": true
+  }
+}
