@@ -108,12 +108,6 @@ test('plan de mejora: plataforma agotada -> cambio de placa', () => {
   assert.match(step.note, /DDR5/);
 });
 
-test('plan de mejora: las mejoras gratis van primero', () => {
-  const r = analyze(profile({ ram: { total: 16 * GB, slots: 4, modules: [{ size: 16 * GB, type: 'DDR4', configuredSpeed: 2133, partNum: 'KF432C16BB/16' }] } }));
-  const q = r.upgrades.quickFixes;
-  assert.equal(q[0].cost, 'Gratis');
-  assert.ok(q.some((x) => x.id === 'ram-single'));
-});
 test('perfil: la GPU sugerida respeta la marca preferida y la ensambladora', () => {
   const prefs = { name: 'Jorge', cpuBrand: 'AMD', gpuBrand: 'NVIDIA', gpuMaker: 'ASUS', psuBrand: 'Corsair', budget: 'equilibrado' };
   const r = analyze(profile({ board: { model: 'B650 AORUS ELITE' }, cpu: { brand: 'AMD Ryzen 7 7700X', cores: 16, physicalCores: 8 }, gpus: [{ name: 'AMD Radeon RX 6600', vram: 8192 }] }), { prefs });

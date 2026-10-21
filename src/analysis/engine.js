@@ -183,7 +183,7 @@ function analyze(profile, settings = {}) {
     add({ id: 'cpu-unknown', severity: 'tip', component: 'cpu', title: 'Procesador no reconocido con precisión', detail: `El puntaje de "${cpuId.name}" se estimó a partir de núcleos y frecuencia.`, action: 'Los resultados de equilibrio CPU/GPU son aproximados.' });
   }
 
-  const upgrades = planUpgrades({ cpuId, cpuEff, gpu, ceiling, platformKey, platform, chipset, resFactor, resolution, usage, findings, ram, prefs });
+  const upgrades = planUpgrades({ cpuId, cpuEff, gpu, ceiling, platformKey, platform, chipset, resFactor, resolution, usage, ram, prefs });
 
   // ---------- Puntaje global ----------
   const penalty = findings.reduce((s, f) => s + SEVERITY_WEIGHT[f.severity], 0);

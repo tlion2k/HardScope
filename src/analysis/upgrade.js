@@ -3,17 +3,6 @@
 // Si hay un perfil de preferencias activo, las sugerencias se anclan a sus marcas y nivel de gasto.
 const hw = require('./hardware');
 
-const QUICK_FIXES = {
-  'ram-xmp': 'Gratis',
-  'power-plan': 'Gratis',
-  'pcie-width': 'Gratis',
-  'disk-space': 'Gratis',
-  'ram-single': 'Bajo costo',
-  'ram-size': 'Bajo costo',
-  'ram-mixed': 'Bajo costo',
-  'os-hdd': 'Bajo costo',
-};
-
 // CPU sugerido en una plataforma nueva según el nivel de gasto.
 const MODERN_PLATFORMS = {
   AMD: { key: 'AM5', label: 'Placa AM5 (B650 / B850)', mem: 'DDR5-6000 CL30', cpus: { economico: 'Ryzen 5 7600X', equilibrado: 'Ryzen 7 7800X3D', maximo: 'Ryzen 7 9800X3D' } },
@@ -40,18 +29,13 @@ function normalizePrefs(p) {
 }
 
 function planUpgrades(ctx) {
-  const { cpuId, cpuEff, gpu, ceiling, platformKey, platform, chipset, resFactor, resolution, usage, findings, ram } = ctx;
+  const { cpuId, cpuEff, gpu, ceiling, platformKey, platform, chipset, resFactor, resolution, usage, ram } = ctx;
   const prefs = normalizePrefs(ctx.prefs);
 
-  const quickFixes = findings
-    .filter((f) => QUICK_FIXES[f.id] && (f.severity === 'critical' || f.severity === 'warning'))
-    .map((f) => ({ id: f.id, cost: QUICK_FIXES[f.id], severity: f.severity, component: f.component, title: f.title, action: f.action, brandHint: quickBrandHint(f.id, prefs, ram) }))
-    .sort((a, b) => (a.cost === 'Gratis' ? -1 : 1) - (b.cost === 'Gratis' ? -1 : 1));
-
-  const plan = { profile: prefs.name, budget: prefs.budget, quickFixes, steps: [], final: null, current: null };
+  const plan = { profile: prefs.name, budget: prefs.budget, steps: [], final: null, current: null };
   if (!gpu || usage === 'office') {
     plan.final = usage === 'office'
-      ? 'Para uso de oficina no hace falta mejorar CPU ni GPU: con las mejoras rápidas basta.'
+      ? 'Para uso de oficina no hace falta mejorar CPU ni GPU: revisa los consejos de Diagnóstico.'
       : 'No se detectó una tarjeta de video para planificar mejoras.';
     return plan;
   }
@@ -61,6 +45,10 @@ function planUpgrades(ctx) {
     cpuName: cpuId.name,
     gpu: gpu.score ?? 1,
     gpuName: gpu.match?.name || gpu.name,
+    gpuVram: gpu.vramGb || gpu.match?.vram || null,
+    gpuPcie: gpu.pcie?.maxGen || gpu.match?.pcie || null,
+    gpuLanes: gpu.pcie?.maxWidth || gpu.match?.lanes || null,
+    gpuYear: gpu.match?.year || null,
     ceiling,
     platformKey,
     platform,
@@ -80,6 +68,7 @@ function planUpgrades(ctx) {
     }
     if (!step) break;
     const before = snapshot(state);
+    const prev = state;
     state = { ...state, ...step.apply };
     const after = snapshot(state);
     const gainPct = Math.round((perf(after) / perf(before) - 1) * 100);
@@ -97,6 +86,7 @@ function planUpgrades(ctx) {
       gainPct,
       before,
       after,
+      compare: buildCompare(step.kind, prev, state, before, after, gainPct),
     });
     if (step.apply.cpuVendor) opts.cpuVendor = step.apply.cpuVendor;
   }
@@ -161,8 +151,8 @@ function gpuStep(s, { vramNeed, prefs }) {
     reason: `Tu ${s.gpuName} (${s.gpu}) es lo que más frena el equipo. Tu procesador y tu placa pueden alimentar una tarjeta de hasta ≈ ${round(target)} puntos sin cuello de botella.`,
     note: 'Revisa que la tarjeta quepa en tu gabinete.',
     prefNote,
-    psu: `Fuente recomendada: ≈ ${watts} W 80 Plus Gold${psuSeries ? ` (${psuSeries})` : ''}.`,
-    apply: { gpu: pick.score, gpuName: pick.name },
+    psu: psuSeries ? `Fuente recomendada: ≈ ${watts} W 80 Plus Gold (${psuSeries}).` : null, // los vatios ya salen en la comparativa
+    apply: { gpu: pick.score, gpuName: pick.name, gpuVram: pick.vram, gpuPcie: pick.pcie, gpuLanes: pick.lanes, gpuYear: pick.year },
   };
 }
 
@@ -256,10 +246,42 @@ function boardLabel(platformDef, prefs) {
   return branded ? `Placa ${branded}` : platformDef.label;
 }
 
-function quickBrandHint(id, prefs, ram) {
-  if ((id === 'os-hdd' || id === 'os-sata') && prefs.storageBrand) return `SSD NVMe sugerido: ${hw.brands.storage[prefs.storageBrand]}.`;
-  if (id === 'ram-size' && prefs.ramBrand) return `Kit sugerido: ${hw.brands.ram[prefs.ramBrand]}${ram.type ? ` ${ram.type}` : ''} (2 módulos iguales).`;
-  return null;
+// Tabla "antes / después" con las diferencias concretas del componente que cambia.
+function buildCompare(kind, a, b, before, after, gainPct) {
+  const pct = (x, y) => (x && y ? `${y >= x ? '+' : ''}${Math.round((y / x - 1) * 100)}%` : '');
+  const state = (snap) => (snap.balanced ? 'Sin cuello de botella' : `Limita ${limiterLabel(snap.limiter)}`);
+  const link = (s) => (s.gpuPcie && s.gpuLanes ? `PCIe ${s.slotGen ? Math.min(s.slotGen, s.gpuPcie) : s.gpuPcie}.0 x${s.gpuLanes}` : '—');
+  const rows = [];
+  if (kind === 'gpu') {
+    rows.push(
+      { label: 'Tarjeta de video', before: a.gpuName, after: b.gpuName },
+      { label: 'Potencia de la tarjeta', before: round(a.gpu), after: round(b.gpu), diff: pct(a.gpu, b.gpu) },
+      { label: 'Memoria de video (VRAM)', before: a.gpuVram ? `${a.gpuVram} GB` : '—', after: `${b.gpuVram} GB`, diff: a.gpuVram ? `${b.gpuVram - a.gpuVram >= 0 ? '+' : ''}${round(b.gpuVram - a.gpuVram)} GB` : '' },
+      { label: 'Enlace en tu placa', before: link(a), after: link(b) },
+      { label: 'Generación', before: a.gpuYear || '—', after: b.gpuYear },
+      { label: 'Fuente recomendada', before: `≈ ${hw.psuWatts(a.gpu)} W`, after: `≈ ${hw.psuWatts(b.gpu)} W`, diff: hw.psuWatts(b.gpu) > hw.psuWatts(a.gpu) ? 'Revisa tu fuente' : 'Igual' }
+    );
+  } else if (kind === 'cpu') {
+    rows.push(
+      { label: 'Procesador', before: a.cpuName, after: b.cpuName },
+      { label: 'Potencia del procesador', before: round(a.cpu), after: round(b.cpu), diff: pct(a.cpu, b.cpu) },
+      { label: 'Placa madre', before: a.platform?.socket || '—', after: 'Se mantiene' }
+    );
+  } else {
+    rows.push(
+      { label: 'Procesador', before: a.cpuName, after: b.cpuName },
+      { label: 'Potencia del procesador', before: round(a.cpu), after: round(b.cpu), diff: pct(a.cpu, b.cpu) },
+      { label: 'Plataforma', before: a.platform?.socket || '—', after: b.platform?.socket },
+      { label: 'Memoria RAM', before: a.memType || '—', after: b.memType },
+      { label: 'Slot de la tarjeta', before: a.slotGen ? `PCIe ${a.slotGen}.0` : '—', after: `PCIe ${b.slotGen}.0` },
+      { label: 'Techo de GPU de la placa', before: a.ceiling ? round(a.ceiling) : '—', after: round(b.ceiling), diff: pct(a.ceiling, b.ceiling) }
+    );
+  }
+  rows.push(
+    { label: 'Rendimiento en tu equipo', before: round(before.perf), after: round(after.perf), diff: gainPct < 5 ? 'Base' : `+${gainPct}%`, highlight: true },
+    { label: 'Equilibrio', before: state(before), after: state(after), good: after.balanced }
+  );
+  return rows;
 }
 
 function snapshot(s) {
