@@ -1,2 +1,4 @@
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+# Los catálogos se verifican byte a byte con SHA-256: siempre LF en todos los sistemas.
+src/data/** text eol=lf
