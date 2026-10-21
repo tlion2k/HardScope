@@ -11,9 +11,22 @@
 
 Los enlaces siempre bajan la última versión. Todas las versiones están en [Releases](https://github.com/tlion2k/HardScope/releases).
 
-> Requiere Windows 10 u 11 de 64 bits. Como el ejecutable no tiene firma digital, Windows SmartScreen puede mostrar un aviso la primera vez: pulsa **Más información → Ejecutar de todas formas**.
+> Requiere Windows 10 u 11 de 64 bits. **No hay que instalar nada más:** el `.exe` trae todo lo necesario y solo usa componentes que ya vienen con Windows (PowerShell y WMI). No necesita permisos de administrador. Como el ejecutable no tiene firma digital, Windows SmartScreen puede mostrar un aviso la primera vez: pulsa **Más información → Ejecutar de todas formas**.
 
 ## 💻 Levantar el proyecto en local
+
+### Opción rápida: instalación automática
+
+Descarga el código ([ZIP](https://github.com/tlion2k/HardScope/archive/refs/heads/main.zip) o `git clone`) y haz **doble clic en `setup.cmd`**. El script:
+
+1. Revisa que tengas Windows 10/11 de 64 bits.
+2. Instala Node.js LTS si falta o es anterior a la 20, e instala Git si no lo tienes (con `winget`).
+3. Si hay versiones nuevas de Node.js o Git, pregunta si quieres actualizarlas.
+4. Ejecuta `npm install` (descarga Electron) y ofrece abrir la app.
+
+Windows pedirá **permiso de administrador** solo en el paso que instala Node.js o Git; el resto no lo necesita. Opciones: `setup.cmd -Check` solo revisa sin instalar nada, `setup.cmd -Yes` acepta todo sin preguntar y `setup.cmd -NoStart` no abre la app al final.
+
+### Opción manual
 
 **Requisitos:** [Node.js](https://nodejs.org) 20 o superior y [Git](https://git-scm.com), en Windows 10/11.
 
@@ -103,6 +116,8 @@ src/
     platforms.json   chipsets y plataformas: PCIe, socket, techo y mejores CPUs
     brands.json      marcas y series para los perfiles (placas, fuentes, RAM, SSD, ensambladoras)
   renderer/    interfaz (HTML, CSS y JS sin paso de compilación)
+scripts/
+  setup.ps1      instalación automática del entorno (lo llama setup.cmd)
 test/          pruebas con node:test
 ```
 
