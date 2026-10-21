@@ -33,7 +33,12 @@ class LiveMonitor {
     });
 
     this.timer = setInterval(async () => {
-      const [load, mem] = await Promise.all([si.currentLoad(), si.mem()]);
+      let load, mem;
+      try {
+        [load, mem] = await Promise.all([si.currentLoad(), si.mem()]);
+      } catch {
+        return; // se omite esta muestra; la siguiente vuelve a intentarlo
+      }
       const cores = load.cpus.map((c) => c.load);
       const gpuUtil = this.gpu.fromNvidia ? this.gpu.utilNv : this.gpu.util;
       onSample({

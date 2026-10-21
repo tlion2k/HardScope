@@ -2,6 +2,7 @@
 // para ganar rendimiento sin crear un cuello de botella nuevo.
 // Si hay un perfil de preferencias activo, las sugerencias se anclan a sus marcas y nivel de gasto.
 const hw = require('./hardware');
+const { cpuCheck, gpuChecks, platformChecks } = require('./checks');
 
 // CPU sugerido en una plataforma nueva según el nivel de gasto.
 const MODERN_PLATFORMS = {
@@ -33,6 +34,10 @@ function planUpgrades(ctx) {
   const prefs = normalizePrefs(ctx.prefs);
 
   const plan = { profile: prefs.name, budget: prefs.budget, steps: [], final: null, current: null };
+  if (ctx.laptop) {
+    plan.final = 'Es un equipo portátil: el procesador y la tarjeta de video van soldados y no se pueden cambiar. Las mejoras posibles son la RAM (si tiene ranuras libres) y el SSD; revisa los consejos de Diagnóstico.';
+    return plan;
+  }
   if (!gpu || usage === 'office') {
     plan.final = usage === 'office'
       ? 'Para uso de oficina no hace falta mejorar CPU ni GPU: revisa los consejos de Diagnóstico.'
@@ -54,10 +59,11 @@ function planUpgrades(ctx) {
     platform,
     slotGen: chipset?.gpuPcie ?? null,
     memType: ram.type,
+    originalBoard: true,
   };
   plan.current = snapshot(state);
   const vramNeed = usage === 'creation' || resolution !== '1080p' ? 12 : 8;
-  const opts = { resFactor, vramNeed, prefs, cpuVendor: cpuId.family?.vendor || platform?.vendor || null };
+  const opts = { resFactor, vramNeed, prefs, cpuVendor: cpuId.family?.vendor || platform?.vendor || null, board: ctx.board || {} };
 
   for (let i = 0; i < 3; i++) {
     let step = nextStep(state, opts);
@@ -73,7 +79,7 @@ function planUpgrades(ctx) {
     const after = snapshot(state);
     const gainPct = Math.round((perf(after) / perf(before) - 1) * 100);
     const notes = [step.note];
-    if (gainPct < 5) notes.push('Por sí solo casi no sube los FPS con tu tarjeta actual: es la base que permite el paso siguiente.');
+    if (gainPct < 5) notes.push('Por sí solo casi no sube el rendimiento con tu tarjeta actual: es la base que permite el paso siguiente.');
     plan.steps.push({
       kind: step.kind,
       title: step.title,
@@ -83,6 +89,7 @@ function planUpgrades(ctx) {
       note: notes.filter(Boolean).join(' ') || null,
       prefNote: step.prefNote || null,
       psu: step.psu || null,
+      checks: step.checks || [],
       gainPct,
       before,
       after,
@@ -97,9 +104,9 @@ function planUpgrades(ctx) {
   const last = plan.steps.at(-1)?.after || plan.current;
   plan.final = plan.steps.length
     ? last.balanced
-      ? 'Con esta ruta el equipo queda equilibrado: ningún componente frena a los demás.'
-      : `Después de estos pasos, el siguiente límite será ${limiterLabel(last.limiter)}.`
-    : 'Tu equipo ya está en lo más alto de su combinación: no hay una mejora individual que suba el rendimiento sin crear un cuello de botella.';
+      ? 'Con esta ruta, según los índices estimados, ningún componente quedaría claramente por debajo de los demás.'
+      : `Después de estos pasos, el siguiente límite probable sería ${limiterLabel(last.limiter)}.`
+    : 'Según los índices estimados, no hay una mejora de un solo componente que suba claramente el rendimiento sin dejar otro por debajo.';
   return plan;
 }
 
@@ -148,9 +155,10 @@ function gpuStep(s, { vramNeed, prefs }) {
     title: 'Cambiar la tarjeta de video',
     pick: `${pick.name} (${pick.vram} GB)${maker.label ? ` · ${maker.label}` : ''}`,
     alternatives: alternatives.map((g) => `${g.name}${g === economic ? ' · opción económica' : ''}`),
-    reason: `Tu ${s.gpuName} (${s.gpu}) es lo que más frena el equipo. Tu procesador y tu placa pueden alimentar una tarjeta de hasta ≈ ${round(target)} puntos sin cuello de botella.`,
-    note: 'Revisa que la tarjeta quepa en tu gabinete.',
+    reason: `Según los índices estimados, tu ${s.gpuName} (${s.gpu}) es lo que más limita al equipo. Tu procesador y tu placa podrían aprovechar una tarjeta de hasta ≈ ${round(target)} puntos sin quedar por debajo.`,
+    note: null,
     prefNote,
+    checks: gpuChecks(watts),
     psu: psuSeries ? `Fuente recomendada: ≈ ${watts} W 80 Plus Gold (${psuSeries}).` : null, // los vatios ya salen en la comparativa
     apply: { gpu: pick.score, gpuName: pick.name, gpuVram: pick.vram, gpuPcie: pick.pcie, gpuLanes: pick.lanes, gpuYear: pick.year },
   };
@@ -180,7 +188,7 @@ function gpuMakerLabel(gpuEntry, prefs) {
   return { label: `versión ${prefs.gpuMaker} ${hw.brands.gpuSeries[prefs.gpuMaker] || ''}`.trim() };
 }
 
-function cpuStep(s, { resFactor, prefs, cpuVendor }) {
+function cpuStep(s, { resFactor, prefs, board }) {
   if (!s.platform) return null;
   const options = s.platform.bestCpus
     .map((name) => ({ name, score: round(hw.identifyCpu(name).score * resFactor) }))
@@ -204,9 +212,10 @@ function cpuStep(s, { resFactor, prefs, cpuVendor }) {
     title: 'Cambiar el procesador (misma placa)',
     pick: pick.name,
     alternatives,
-    reason: `Tu procesador (${s.cpu}) ya es el límite para la ${s.gpuName} (${s.gpu}). El ${pick.name} (${pick.score}) es compatible con tu placa y le da margen a la GPU.`,
-    note: s.platform.note || (cpuVendor === 'Intel' ? 'Actualiza la BIOS antes de instalar el nuevo procesador.' : null),
+    reason: `Según los índices estimados, tu procesador (${s.cpu}) es el límite probable para la ${s.gpuName} (${s.gpu}). El ${pick.name} (${pick.score}) usa el mismo socket que tu placa y le daría margen a la tarjeta.`,
+    note: s.platform.note || null,
     prefNote,
+    checks: [cpuCheck(s.originalBoard ? board : {}, pick.name)],
     apply: { cpu: pick.score, cpuName: pick.name },
   };
 }
@@ -234,10 +243,11 @@ function platformStep(s, { resFactor, prefs }) {
     title: 'Cambiar placa, procesador y RAM',
     pick: `${boardLabel(main, prefs)} + ${cpuName} + 32 GB ${main.mem}${ramSeries ? ` (${ramSeries})` : ''}`,
     alternatives: [`${boardLabel(alt, prefs)} + ${alt.cpus[prefs.budget]} + 32 GB ${alt.mem}`],
-    reason: `Tu plataforma ${s.platform?.socket || 'actual'} ya no admite un procesador mejor: para seguir subiendo de tarjeta sin cuello de botella necesitas una plataforma moderna, con techo para GPUs de gama alta durante varios años.`,
+    reason: `Tu plataforma ${s.platform?.socket || 'actual'} ya no admite un procesador claramente mejor: para seguir subiendo de tarjeta sin que el procesador quede por debajo, la opción es una plataforma moderna.`,
     note: notes.filter(Boolean).join(' ') || null,
     psu: prefs.psuBrand ? `Si cambias también la fuente: ${hw.brands.psu[prefs.psuBrand]}.` : null,
-    apply: { cpu: cpuScore, cpuName, ceiling, platformKey: main.key, platform: hw.platforms[main.key], slotGen: 5, memType: 'DDR5', cpuVendor: order[0] },
+    checks: platformChecks(),
+    apply: { cpu: cpuScore, cpuName, ceiling, platformKey: main.key, platform: hw.platforms[main.key], slotGen: 5, memType: 'DDR5', cpuVendor: order[0], originalBoard: false },
   };
 }
 
@@ -249,7 +259,7 @@ function boardLabel(platformDef, prefs) {
 // Tabla "antes / después" con las diferencias concretas del componente que cambia.
 function buildCompare(kind, a, b, before, after, gainPct) {
   const pct = (x, y) => (x && y ? `${y >= x ? '+' : ''}${Math.round((y / x - 1) * 100)}%` : '');
-  const state = (snap) => (snap.balanced ? 'Sin cuello de botella' : `Limita ${limiterLabel(snap.limiter)}`);
+  const state = (snap) => (snap.balanced ? 'Equilibrado (estimado)' : `Limitaría ${limiterLabel(snap.limiter)}`);
   const link = (s) => (s.gpuPcie && s.gpuLanes ? `PCIe ${s.slotGen ? Math.min(s.slotGen, s.gpuPcie) : s.gpuPcie}.0 x${s.gpuLanes}` : '—');
   const rows = [];
   if (kind === 'gpu') {
@@ -278,7 +288,7 @@ function buildCompare(kind, a, b, before, after, gainPct) {
     );
   }
   rows.push(
-    { label: 'Rendimiento en tu equipo', before: round(before.perf), after: round(after.perf), diff: gainPct < 5 ? 'Base' : `+${gainPct}%`, highlight: true },
+    { label: 'Índice de rendimiento estimado', before: round(before.perf), after: round(after.perf), diff: gainPct < 5 ? 'Base' : `+${gainPct}%`, highlight: true },
     { label: 'Equilibrio', before: state(before), after: state(after), good: after.balanced }
   );
   return rows;

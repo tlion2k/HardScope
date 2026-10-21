@@ -1,6 +1,7 @@
 // Compara el equipo actual con el perfil de preferencias: qué cumple, qué hay que cambiar
 // (con opciones equivalentes o superiores) y qué cambios son sólo opcionales.
 const hw = require('./hardware');
+const { gpuChecks, platformChecks } = require('./checks');
 const { modern } = require('../data/platforms.json');
 
 const BUDGET_TARGET = { economico: 'equivalent', equilibrado: 'superior', maximo: 'superior' };
@@ -60,7 +61,7 @@ function gpuOptions(vendor, current, cpuTarget) {
   return out;
 }
 
-function matchProfile({ profile, prefs, cpuId, chipset, platform, gpu, ram, resFactor }) {
+function matchProfile({ profile, prefs, cpuId, chipset, platform, gpu, ram, resFactor, laptop }) {
   if (!prefs?.name) return null;
   const found = detectBrands(profile, gpu);
   const rows = [];
@@ -79,8 +80,9 @@ function matchProfile({ profile, prefs, cpuId, chipset, platform, gpu, ram, resF
     cpuScoreAfter = chosen.score;
     rows.push({
       key: 'cpu', current: cpuId.name, wanted: prefs.cpuBrand, status: 'change',
-      message: `Tu procesador es ${currentVendor}. Para pasar a ${prefs.cpuBrand} manteniendo o superando tu rendimiento actual:`,
+      message: `Tu procesador es ${currentVendor}. Para pasar a ${prefs.cpuBrand} manteniendo o superando tu índice de rendimiento actual:`,
       options,
+      checks: platformChecks(),
     });
   }
 
@@ -111,7 +113,7 @@ function matchProfile({ profile, prefs, cpuId, chipset, platform, gpu, ram, resF
     const options = gpuOptions(prefs.gpuBrand, gpu.score, cpuScoreAfter * resFactor);
     const maker = prefs.gpuMaker && (hw.brands.gpuMakers[prefs.gpuBrand] || []).includes(prefs.gpuMaker) ? ` Elige la versión ${prefs.gpuMaker} (${hw.brands.gpuSeries[prefs.gpuMaker]}).` : '';
     gpuScoreAfter = options.at(-1)?.score ?? gpuScoreAfter;
-    rows.push({ key: 'gpu', current: gpuName, wanted: gpuWanted, status: 'change', message: `Tu tarjeta es ${gpuVendorNow || 'de otra marca'}. Opciones ${prefs.gpuBrand} sin cuello de botella con tu procesador:${maker}`, options });
+    rows.push({ key: 'gpu', current: gpuName, wanted: gpuWanted, status: 'change', message: `Tu tarjeta es ${gpuVendorNow || 'de otra marca'}. Opciones ${prefs.gpuBrand} que tu procesador aprovecharía, según los índices estimados:${maker}`, options, checks: gpuChecks(hw.psuWatts(gpuScoreAfter)) });
   } else if (prefs.gpuMaker && found.gpuMaker && found.gpuMaker !== prefs.gpuMaker) {
     rows.push({ key: 'gpu', current: `${gpuName} · ${found.gpuMaker}`, wanted: gpuWanted, status: 'optional', message: `El chip ya es el que quieres; la ensambladora es ${found.gpuMaker}. Elige ${prefs.gpuMaker} en tu próxima tarjeta.` });
   } else {
@@ -143,6 +145,17 @@ function matchProfile({ profile, prefs, cpuId, chipset, platform, gpu, ram, resF
     key: 'psu', current: 'No detectable', wanted: prefs.psuBrand || 'Sin preferencia', status: 'info',
     message: `Windows no informa la fuente instalada. Para ${gpuScoreAfter !== gpu?.score ? 'el equipo con estos cambios' : 'tu equipo'} se recomiendan ≈ ${watts} W 80 Plus Gold${prefs.psuBrand ? ` (${hw.brands.psu[prefs.psuBrand]})` : ''}.`,
   });
+
+  // En un portátil la CPU, la placa y la GPU no se cambian: las opciones quedan como referencia para el próximo equipo.
+  if (laptop) {
+    for (const r of rows) {
+      if (['cpu', 'board', 'gpu'].includes(r.key) && r.status === 'change') {
+        r.status = 'info';
+        r.message = `Equipo portátil: este componente no se puede cambiar. Si compras un equipo nuevo, busca uno con esto:`;
+        delete r.checks;
+      }
+    }
+  }
 
   const changes = rows.filter((r) => r.status === 'change');
   return {

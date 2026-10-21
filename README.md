@@ -133,9 +133,15 @@ test/          pruebas con node:test
 2. Crea una etiqueta: `git tag v1.4.0 && git push --tags`.
 3. GitHub Actions ejecuta las pruebas, compila `HardScope-Setup.exe` y `HardScope-Portable.exe` y los publica en Releases. Los enlaces de *Descarga directa* apuntan solos a la nueva versión, y la app avisa desde *Acerca de → Buscar actualizaciones*.
 
-## Nota
+## Cómo interpretar los resultados
 
-Los puntajes de rendimiento son estimaciones basadas en promedios de pruebas públicas y sirven para comparar componentes, no como benchmark exacto.
+- **Índices estimados:** cada tarjeta y procesador tiene un índice de referencia (RTX 4090 = 100) aproximado a partir de pruebas públicas. Sirven para comparar componentes; no son FPS ni mediciones de tu equipo.
+- **"El procesador limitaría ≈ X %"** es una tendencia según esos índices. El resultado real depende del juego, la resolución, la calidad y los límites de FPS. Para confirmarlo usa el **Monitor en vivo** mientras juegas.
+- **Índice del equipo (0-100):** parte de 100 y resta por cada aviso (18 crítico, 8 advertencia, 2 consejo). Es un resumen de los avisos, no una medida de rendimiento. Los avisos de "dato no reconocido" no restan.
+- **Compatibilidad de compra:** se deduce del chipset. Cada recomendación incluye **"Verifica antes de comprar"**: lista de CPUs compatibles y BIOS de tu placa, tamaño y conectores de la tarjeta, fuente, RAM y disipador.
+- **Datos que no se pudieron leer:** la app los muestra en Diagnóstico y en el Resumen en lugar de ocultarlos.
+- **Portátiles:** se detectan automáticamente y no se sugieren cambios de procesador, placa o tarjeta de video.
+- **Privacidad:** todo se analiza en tu equipo; el reporte exportado no incluye el nombre del equipo salvo que lo actives en *Acerca de*.
 
 ## Licencia
 

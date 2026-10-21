@@ -38,12 +38,28 @@ function createWindow() {
   });
 }
 
+// Los errores vuelven como { error } para que la interfaz muestre el problema y ofrezca reintentar.
 ipcMain.handle('scan', async (_e, settings) => {
-  profile = await collect();
-  return { profile, report: analyze(profile, settings) };
+  try {
+    profile = await collect();
+  } catch (err) {
+    return { error: `No se pudo leer el hardware: ${err.message}` };
+  }
+  try {
+    return { profile, report: analyze(profile, settings) };
+  } catch (err) {
+    return { error: `Se leyó el hardware, pero falló el análisis: ${err.message}` };
+  }
 });
 
-ipcMain.handle('reanalyze', (_e, settings) => (profile ? { profile, report: analyze(profile, settings) } : null));
+ipcMain.handle('reanalyze', (_e, settings) => {
+  if (!profile) return null;
+  try {
+    return { profile, report: analyze(profile, settings) };
+  } catch (err) {
+    return { error: `Falló el análisis: ${err.message}` };
+  }
+});
 
 ipcMain.handle('monitor:start', () => {
   history.length = 0;

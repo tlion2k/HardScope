@@ -63,6 +63,8 @@ function go(page) {
 document.querySelector('.content').addEventListener('click', (e) => {
   const b = e.target.closest('[data-goto]');
   if (b) go(b.dataset.goto);
+  const g = e.target.closest('[data-gpu]');
+  if (g) pickGpu(g.dataset.gpu);
 });
 $('#nav').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-page]');
@@ -79,8 +81,7 @@ function bindSeg(id, key) {
     el.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
     saveSettings();
     if (state.profile) {
-      const res = await api.reanalyze(apiSettings());
-      if (res) apply(res);
+      applyReanalysis(await api.reanalyze(apiSettings()));
     }
   });
 }
@@ -88,8 +89,9 @@ bindSeg('#usageSeg', 'usage');
 bindSeg('#resSeg', 'resolution');
 
 $('#scanBtn').addEventListener('click', scan);
+$('#retryBtn').addEventListener('click', scan);
 $('#exportBtn').addEventListener('click', async () => {
-  const path = await api.exportReport(buildReport(state.profile, state.report));
+  const path = await api.exportReport(buildReport(state.profile, state.report, { includeHost: !!state.settings.includeHost }));
   if (path) flash(`Reporte guardado`);
 });
 
@@ -105,15 +107,22 @@ async function scan() {
   $('#exportBtn').disabled = true;
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   $('#loading').classList.add('active');
+  $('#loading').classList.remove('failed');
+  $('#loadingTitle').textContent = 'Analizando tu equipo…';
   const steps = ['Leyendo procesador y placa madre', 'Midiendo el enlace PCIe de la tarjeta de video', 'Revisando módulos de memoria y perfiles XMP', 'Analizando discos y plan de energía', 'Buscando cuellos de botella'];
   let i = 0;
   const t = setInterval(() => ($('#loadingStep').textContent = steps[++i % steps.length]), 1100);
   try {
     const res = await api.scan(apiSettings());
+    if (res?.error) throw new Error(res.error);
     apply(res);
-    flash(`Análisis completo · ${new Date().toLocaleTimeString()}`);
+    const missing = res.profile.issues?.length;
+    flash(missing ? `Análisis con ${missing} dato(s) sin leer · ${new Date().toLocaleTimeString()}` : `Análisis completo · ${new Date().toLocaleTimeString()}`);
   } catch (err) {
-    $('#loadingStep').textContent = `Error al analizar: ${err.message}`;
+    clearInterval(t);
+    $('#loading').classList.add('failed');
+    $('#loadingTitle').textContent = 'No se pudo completar el análisis';
+    $('#loadingStep').textContent = err.message;
     return;
   } finally {
     clearInterval(t);
@@ -121,6 +130,11 @@ async function scan() {
   }
   $('#loading').classList.remove('active');
   go(document.querySelector('#nav button.active')?.dataset.page || 'overview');
+}
+
+function applyReanalysis(res) {
+  if (res?.error) flash(res.error);
+  else if (res) apply(res);
 }
 
 function apply({ profile, report }) {
@@ -147,7 +161,9 @@ function renderOverview() {
   const c = r.components;
   const p = state.profile;
   const sev = r.health >= 80 ? 'ok' : r.health >= 55 ? 'warning' : 'critical';
-  const label = r.health >= 90 ? 'Excelente' : r.health >= 80 ? 'Muy buena' : r.health >= 65 ? 'Mejorable' : r.health >= 45 ? 'Baja' : 'Muy baja';
+  const label = r.health >= 90 ? 'Muy bien' : r.health >= 80 ? 'Bien' : r.health >= 65 ? 'Con mejoras posibles' : r.health >= 45 ? 'Con varios avisos' : 'Con avisos importantes';
+  const w = r.healthWeights;
+  const missing = r.dataIssues.length;
   const circ = 2 * Math.PI * 80;
 
   const rows = [
@@ -159,7 +175,7 @@ function renderOverview() {
   ];
 
   $('#page-overview').innerHTML = `
-    <div class="page-head"><h1>Resumen del equipo</h1><p>${esc(p.system.manufacturer)} ${esc(p.system.model)} · ${esc(p.os.distro)}</p></div>
+    <div class="page-head"><h1>Resumen del equipo</h1><p>${esc(p.system.manufacturer)} ${esc(p.system.model)}${r.laptop ? ' · equipo portátil' : ''} · ${esc(p.os.distro)}</p></div>
     <div class="ov">
       <div class="card health sev-${sev}">
         <div class="gauge">
@@ -167,8 +183,10 @@ function renderOverview() {
             <circle class="track" cx="95" cy="95" r="80"/><circle class="bar" cx="95" cy="95" r="80" stroke="url(#gg)" stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-target="${circ * (1 - r.health / 100)}"/></svg>
           <div class="val"><b class="num">${r.health}</b><small>de 100</small></div>
         </div>
-        <div class="label">Compatibilidad entre componentes</div>
+        <div class="label">Índice del equipo</div>
         <div class="tone ov-verdict">${label}</div>
+        <p class="ov-how">Orientativo: parte de 100 y resta ${w.critical} por cada aviso crítico, ${w.warning} por advertencia y ${w.tip} por consejo. No es una medición de rendimiento.</p>
+        ${missing ? `<button class="ov-missing" data-goto="findings">${svg(SEV.warning.icon)}${missing} dato(s) no se pudieron leer</button>` : ''}
       </div>
       <div class="card ov-list">
         ${rows
@@ -200,8 +218,20 @@ function findingHtml(f) {
       <h4>${esc(f.title)}</h4>
       <p>${esc(f.detail)}</p>
       ${f.action ? `<div class="todo">${svg('<path d="M5 12h14m-6-6 6 6-6 6"/>')}<div><b>Qué hacer:</b> ${esc(f.action)}</div></div>` : ''}
+      ${checksHtml(f.checks)}
     </div>
   </article>`;
+}
+
+// "Verifica antes de comprar": lo que HardScope no puede comprobar por sí solo.
+function checksHtml(checks) {
+  if (!checks?.length) return '';
+  return `<details class="checks"><summary>${svg('<path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>')}Verifica antes de comprar (${checks.length})</summary><ul>${checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>`;
+}
+
+function dataIssuesHtml(issues) {
+  if (!issues?.length) return '';
+  return `<div class="data-issues">${svg(SEV.warning.icon)}<div><b>Algunos datos no se pudieron leer</b><ul>${issues.map((i) => `<li>${esc(i.text)}</li>`).join('')}</ul><small>Las conclusiones que dependen de esos datos pueden faltar o ser menos precisas. Prueba «Analizar de nuevo».</small></div></div>`;
 }
 
 function renderFindings() {
@@ -210,7 +240,8 @@ function renderFindings() {
   if (!comps.includes(state.filter)) state.filter = 'all';
   const list = r.findings.filter((f) => state.filter === 'all' || f.component === state.filter);
   $('#page-findings').innerHTML = `
-    <div class="page-head"><h1>Diagnóstico y consejos</h1><p><span class="tone sev-critical">● Rojo</span>: cuello de botella que debes corregir · <span class="tone sev-warning">● Amarillo</span>: conviene mejorar · <span class="tone sev-tip">● Azul</span>: consejo · <span class="tone sev-ok">● Verde</span>: correcto</p></div>
+    <div class="page-head"><h1>Diagnóstico y consejos</h1><p><span class="tone sev-critical">● Rojo</span>: problema importante · <span class="tone sev-warning">● Amarillo</span>: conviene revisar · <span class="tone sev-tip">● Azul</span>: consejo · <span class="tone sev-ok">● Verde</span>: correcto. Las comparaciones entre componentes se basan en índices estimados, no en mediciones.</p></div>
+    ${dataIssuesHtml(r.dataIssues)}
     <div class="filters">${comps.map((k) => `<button data-f="${k}" class="${state.filter === k ? 'on' : ''}">${k === 'all' ? 'Todos' : COMP[k].label} <span class="num">${k === 'all' ? r.findings.length : r.findings.filter((f) => f.component === k).length}</span></button>`).join('')}</div>
     ${list.map(findingHtml).join('') || '<div class="empty">Nada que mostrar aquí.</div>'}`;
   $('#page-findings .filters').addEventListener('click', (e) => {
@@ -228,10 +259,11 @@ function renderBalance() {
   const { boardVsGpu: bvg, cpuVsGpu: cvg, pcie } = r.balance;
   const f = r.findings.find((x) => ['board-limits-gpu', 'board-superior', 'board-gpu-balanced'].includes(x.id));
   const V = {
-    gpu: { sev: f?.severity || 'warning', title: 'La placa no aprovecha todo el rendimiento de tu tarjeta de video', icon: '<path d="M12 3 2 20h20L12 3zm0 6v5m0 3v.01"/>' },
-    board: { sev: f?.severity || 'tip', title: 'Tu placa es superior a tu tarjeta de video: puede soportar tarjetas más potentes', icon: '<path d="M12 19V5m-6 6 6-6 6 6"/>' },
+    gpu: { sev: f?.severity || 'warning', title: f?.title || 'La plataforma probablemente no aprovecha toda tu tarjeta de video', icon: '<path d="M12 3 2 20h20L12 3zm0 6v5m0 3v.01"/>' },
+    board: { sev: f?.severity || 'tip', title: 'Tu placa admite tarjetas de video bastante más potentes', icon: '<path d="M12 19V5m-6 6 6-6 6 6"/>' },
     balanced: { sev: 'ok', title: 'Placa y tarjeta de video están bien emparejadas', icon: SEV.ok.icon },
     unknown: { sev: 'tip', title: 'No hay datos suficientes para comparar', icon: SEV.tip.icon },
+    laptop: { sev: 'tip', title: 'Equipo portátil: placa y tarjeta vienen integradas y no se cambian por separado', icon: SEV.tip.icon },
   }[bvg.verdict];
 
   const max = Math.max(bvg.ceiling || 0, bvg.gpuScore || 0, cvg.cpuScore || 0, 40) * 1.15;
@@ -240,10 +272,10 @@ function renderBalance() {
   const recs = r.findings.filter((x) => ['board', 'gpu', 'cpu'].includes(x.component) && x.severity !== 'ok');
 
   $('#page-balance').innerHTML = `
-    <div class="page-head"><h1>Placa madre vs tarjeta de video</h1><p>Compara lo que la placa (y la plataforma que define: socket, procesadores compatibles y PCIe) puede alimentar contra lo que rinde tu GPU.</p></div>
+    <div class="page-head"><h1>Placa madre vs tarjeta de video</h1><p>Compara el índice estimado de la plataforma (socket, mejor procesador compatible y PCIe) con el de tu tarjeta de video. Son índices de referencia, no mediciones: el resultado real depende del juego y la resolución.</p></div>
     <div class="verdict tone sev-${V.sev}" style="border-color:color-mix(in srgb,var(--c) 40%,transparent);background:color-mix(in srgb,var(--c) 7%,transparent)">
       <div class="big">${svg(V.icon)}</div>
-      <div><h2>${esc(V.title)}</h2><p>${esc(f?.detail || '')}</p>${f?.action ? `<p style="margin-top:8px;color:var(--text)"><b>Qué hacer:</b> ${esc(f.action)}</p>` : ''}</div>
+      <div><h2>${esc(V.title)}</h2><p>${esc(f?.detail || '')}</p>${f?.action ? `<p style="margin-top:8px;color:var(--text)"><b>Qué hacer:</b> ${esc(f.action)}</p>` : ''}${checksHtml(f?.checks)}</div>
     </div>
     <div class="vs">
       <div class="card side">
@@ -255,16 +287,16 @@ function renderBalance() {
           <dt>Slot gráfico</dt><dd>${board.chipset ? `PCIe ${board.chipset.gpuPcie}.0 x16` : '—'}</dd>
           <dt>Memoria</dt><dd>${esc(board.platform?.mem || '—')}</dd>
           <dt>Mejor CPU compatible</dt><dd>${esc(board.platform?.bestCpus?.at(-1) || '—')}</dd>
-          <dt>Techo de GPU (${esc(r.settings.resolution)})</dt><dd class="num">${bvg.ceiling ?? '—'}</dd>
+          <dt>Índice de la plataforma (${esc(r.settings.resolution)})</dt><dd class="num">${bvg.ceiling ?? '—'}</dd>
         </dl>
       </div>
-      <div class="mid"><small>relación</small><b class="num">${bvg.ratio != null ? `${Math.round(bvg.ratio * 100)}%` : '—'}</b><small>GPU / techo</small></div>
+      <div class="mid"><small>relación</small><b class="num">${bvg.ratio != null ? `${Math.round(bvg.ratio * 100)}%` : '—'}</b><small>GPU / plataforma</small></div>
       <div class="card side">
         <h3>${svg(COMP.gpu.icon)} Tarjeta de video</h3>
         <h2>${esc(gpu?.match?.name || gpu?.name || 'Sin GPU')}</h2>
         <div class="sub">${gpu?.integrated ? 'Gráficos integrados' : gpu?.match ? `Generación ${gpu.match.year}` : 'Modelo no reconocido'}</div>
         <dl class="kv">
-          <dt>Puntaje de rendimiento</dt><dd class="num">${gpu?.score ?? '—'}</dd>
+          <dt>Índice estimado</dt><dd class="num">${gpu?.score ?? '—'}</dd>
           <dt>Interfaz</dt><dd>${pcie.gpuGen ? `PCIe ${pcie.gpuGen}.0 x${pcie.lanes}` : '—'}</dd>
           <dt>Enlace actual</dt><dd>${pcie.curWidth ? `x${pcie.curWidth}${pcie.curGen ? ` · Gen ${pcie.curGen}` : ''}` : '—'}</dd>
           <dt>VRAM</dt><dd>${gpu?.vramGb ? `${gpu.vramGb} GB` : '—'}</dd>
@@ -273,15 +305,15 @@ function renderBalance() {
       </div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <h3>Escala de rendimiento (RTX 4090 = 100)</h3>
+      <h3>Índices estimados (RTX 4090 = 100)</h3>
       <div class="scale">
         <div class="rail"></div>
         ${bvg.gpuScore != null ? `<div class="fill" style="left:0;width:${pos(bvg.gpuScore)}"></div>` : ''}
-        ${bvg.ceiling ? `<div class="mark" style="left:${pos(bvg.ceiling)};color:var(--tip)">Techo de la placa ${bvg.ceiling}<i style="background:var(--tip)"></i></div>` : ''}
+        ${bvg.ceiling ? `<div class="mark" style="left:${pos(bvg.ceiling)};color:var(--tip)">Plataforma ${bvg.ceiling}<i style="background:var(--tip)"></i></div>` : ''}
         ${bvg.gpuScore != null ? `<div class="mark" style="left:${pos(bvg.gpuScore)};color:var(--cyan)">GPU ${bvg.gpuScore}<i style="background:var(--cyan)"></i></div>` : ''}
         <div class="mark below" style="left:${pos(cvg.cpuScore)};color:var(--violet)">CPU ${cvg.cpuScore}<i style="background:var(--violet)"></i></div>
       </div>
-      <p style="color:var(--muted);margin:26px 0 0;font-size:12.5px">Si la GPU queda a la derecha del techo de la placa o del CPU, la tarjeta no rinde al 100%. Si queda muy a la izquierda, la placa admite una tarjeta bastante mejor.</p>
+      <p style="color:var(--muted);margin:26px 0 0;font-size:12.5px">Si la GPU queda claramente a la derecha de la plataforma o del procesador, es probable que no rinda todo su potencial en juegos que dependen del procesador. Si queda muy a la izquierda, la placa admite una tarjeta bastante mejor.</p>
     </div>
     <div class="two">
       <div class="card">
@@ -300,12 +332,12 @@ function renderBalance() {
         <h2 style="font-size:17px">${esc(cpu.name)}</h2>
         <div class="scale" style="margin-top:22px">
           <div class="rail" style="background:linear-gradient(90deg,var(--ok),var(--warning) 60%,var(--critical))"></div>
-          <div class="mark" style="left:${Math.min(98, cvg.bottleneckPct * 1.6 + 2)}%;color:var(--text)">${cvg.verdict === 'cpu' ? `Cuello de botella CPU ≈${cvg.bottleneckPct}%` : cvg.verdict === 'gpu' ? 'La GPU es el límite' : 'Sin cuello de botella'}<i style="background:#fff"></i></div>
+          <div class="mark" style="left:${Math.min(98, cvg.bottleneckPct * 1.6 + 2)}%;color:var(--text)">${cvg.verdict === 'cpu' ? `El procesador limitaría ≈ ${cvg.bottleneckPct} % (índice)` : cvg.verdict === 'gpu' ? 'La GPU es el límite probable' : 'Sin límite claro (estimado)'}<i style="background:#fff"></i></div>
         </div>
         <dl class="kv" style="margin-top:28px">
-          <dt>Puntaje CPU (${esc(r.settings.resolution)})</dt><dd class="num">${cvg.cpuScore}</dd>
-          <dt>Puntaje GPU</dt><dd class="num">${cvg.gpuScore ?? '—'}</dd>
-          <dt>Consejo</dt><dd>${cvg.verdict === 'cpu' ? 'Subir de procesador o jugar a mayor resolución' : cvg.verdict === 'gpu' ? 'Mejorar la tarjeta de video' : 'Mantener'}</dd>
+          <dt>Índice CPU (${esc(r.settings.resolution)})</dt><dd class="num">${cvg.cpuScore}</dd>
+          <dt>Índice GPU</dt><dd class="num">${cvg.gpuScore ?? '—'}</dd>
+          <dt>Consejo</dt><dd>${cvg.verdict === 'cpu' ? 'Confírmalo con el Monitor en vivo' : cvg.verdict === 'gpu' ? 'Mejorar la tarjeta de video' : 'Mantener'}</dd>
         </dl>
       </div>
     </div>
@@ -318,7 +350,7 @@ const LIMITER = { cpu: 'el procesador', gpu: 'la tarjeta de video', board: 'la p
 
 const afterBadge = (snap) =>
   snap.balanced
-    ? `<span class="chip sev-ok tone">${svg(SEV.ok.icon)}Sin cuello de botella</span>`
+    ? `<span class="chip sev-ok tone">${svg(SEV.ok.icon)}Equilibrado (estimado)</span>`
     : `<span class="chip sev-warning tone">${svg(SEV.warning.icon)}Luego limitará ${LIMITER[snap.limiter]}</span>`;
 
 // Modelo · versión Marca → modelo como título y la versión debajo.
@@ -357,11 +389,12 @@ function renderUpgrade() {
         <div class="kicker">Siguiente actualización recomendada · ${esc(next.title)}</div>
         <div class="up-row">
           <div class="up-pick"><div class="ic">${svg(STEP_ICON[next.kind])}</div><div>${pickHtml(next.pick, 'h2')}</div></div>
-          <div class="up-gain">${next.gainPct < 5 ? '<b class="num">Base</b><span>prepara el siguiente paso</span>' : `<b class="num">+${next.gainPct}%</b><span>de rendimiento<br>en tu equipo</span>`}</div>
+          <div class="up-gain">${next.gainPct < 5 ? '<b class="num">Base</b><span>prepara el siguiente paso</span>' : `<b class="num">+${next.gainPct}%</b><span>índice de rendimiento<br>estimado</span>`}</div>
         </div>
         <p>${esc(next.reason)}</p>
-        ${next.alternatives.length ? `<div class="alts"><small>Alternativas sin cuello de botella:</small>${next.alternatives.map((a) => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}
+        ${next.alternatives.length ? `<div class="alts"><small>Otras alternativas de rendimiento:</small>${next.alternatives.map((a) => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}
         ${stepNotes(next)}
+        ${checksHtml(next.checks)}
       </div>
       <div class="card cmp-card"><h3>Antes y después</h3>${compareTable(next.compare)}</div>`
     : `<div class="verdict tone sev-ok" style="border-color:color-mix(in srgb,var(--c) 40%,transparent);background:color-mix(in srgb,var(--c) 7%,transparent)"><div class="big">${svg(SEV.ok.icon)}</div><div><h2>No hay una mejora pendiente</h2><p>${esc(u.final)}</p></div></div>`;
@@ -376,7 +409,7 @@ function renderUpgrade() {
               <div class="card">
                 <div class="road-top"><div><small class="muted">${esc(s.title)}</small>${pickHtml(s.pick, 'h4')}</div><b class="num gain">${s.gainPct < 5 ? 'Base' : `+${s.gainPct}%`}</b></div>
                 <p class="muted" style="margin:6px 0 10px">${esc(s.reason)}</p>
-                ${stepNotes(s)}
+                ${stepNotes(s)}${checksHtml(s.checks)}
                 <div class="road-foot">${afterBadge(s.after)}<span class="muted num">CPU ${s.after.cpu} · GPU ${s.after.gpu}${s.after.ceiling ? ` · Placa ${s.after.ceiling}` : ''}</span></div>
               </div>
             </div>`
@@ -385,16 +418,17 @@ function renderUpgrade() {
       : '';
 
   $('#page-upgrade').innerHTML = `
-    <div class="page-head"><h1>Tu próxima mejora</h1><p>Qué conviene actualizar ahora para ganar rendimiento sin crear un cuello de botella nuevo (${labelUsage()} a ${esc(state.report.settings.resolution)}).</p></div>
+    <div class="page-head"><h1>Tu próxima mejora</h1><p>Qué conviene actualizar para ganar rendimiento sin dejar otro componente por debajo (${labelUsage()} a ${esc(state.report.settings.resolution)}). Son alternativas de rendimiento según índices estimados, no una lista de compra.</p></div>
     ${hero}${road}
-    ${u.steps.length ? `<p class="muted" style="margin-top:18px">${esc(u.final)} Los porcentajes son estimaciones de rendimiento en juegos.</p>` : ''}`;
+    ${u.steps.length ? `<p class="muted" style="margin-top:18px">${esc(u.final)} Los porcentajes son índices estimados para juegos, no FPS medidos: el resultado real depende del juego, la resolución y la configuración.</p>` : ''}`;
 }
 
 // ---------------- Monitor en vivo ----------------
 const LIVE_STATES = {
-  idle: ['tip', 'Equipo en reposo', 'Abre un juego o programa pesado y deja el monitor corriendo para detectar el cuello de botella real.'],
+  idle: ['tip', 'Equipo en reposo', 'Abre un juego o programa pesado y deja el monitor corriendo para ver qué componente trabaja al límite.'],
+  'no-gpu-data': ['tip', 'Sin lectura de la tarjeta de video', 'Windows no está entregando el uso de la GPU, así que no se puede saber qué componente limita. Se muestran solo CPU y RAM.'],
   'gpu-bound': ['ok', 'La GPU trabaja al máximo', 'Es lo ideal en juegos: el procesador alimenta bien a la tarjeta. Para más FPS, la mejora sería la GPU.'],
-  'cpu-bound': ['critical', 'Cuello de botella de CPU ahora mismo', 'La GPU está esperando al procesador. Sube la resolución/calidad gráfica, limita los FPS o mejora el CPU.'],
+  'cpu-bound': ['warning', 'Indicio: el procesador limita en este momento', 'La GPU no llega al máximo mientras un núcleo está al tope. Si el juego no tiene límite de FPS ni V-Sync, es probable que el procesador sea el límite en esta escena.'],
   'cpu-busy': ['warning', 'Procesador muy cargado', 'El CPU está cerca del 100%. Si hay tirones, cierra procesos en segundo plano.'],
   balanced: ['ok', 'Carga equilibrada', 'CPU y GPU trabajan sin que uno frene al otro.'],
 };
@@ -474,6 +508,19 @@ function onSample({ sample, diagnosis }) {
 }
 
 // ---------------- Componentes ----------------
+function gpuPicker(g) {
+  if (state.report.components.gpus.length < 2) return '';
+  return g.name === state.report.settings.primaryGpu
+    ? '<div class="gpu-pick on">Esta es la tarjeta que se usa para el análisis</div>'
+    : `<button class="btn ghost sm gpu-pick" data-gpu="${esc(g.name)}">Usar esta tarjeta para el análisis</button>`;
+}
+
+async function pickGpu(name) {
+  state.settings.primaryGpu = name;
+  saveSettings();
+  applyReanalysis(await api.reanalyze(apiSettings()));
+  flash(`Análisis con ${name}`);
+}
 function renderComponents() {
   const p = state.profile;
   const r = state.report;
@@ -488,7 +535,7 @@ function renderComponents() {
       ['Núcleos P / E', p.cpu.performanceCores && p.cpu.efficiencyCores ? `${p.cpu.performanceCores} / ${p.cpu.efficiencyCores}` : null],
       ['Frecuencia base', p.cpu.speed ? `${p.cpu.speed} GHz` : null],
       ['Caché L3', p.cpu.cache?.l3 ? `${Math.round(p.cpu.cache.l3 / 1024 / 1024)} MB` : null],
-      ['Puntaje estimado', `${r.components.cpu.score}${r.components.cpu.estimated ? ' (aproximado)' : ''}`],
+      ['Índice estimado', `${r.components.cpu.score}${r.components.cpu.estimated ? ' (aproximado)' : ''}`],
     ]))}
     ${block('board', table([
       ['Fabricante', p.board.manufacturer],
@@ -499,7 +546,7 @@ function renderComponents() {
       ['Ranuras de RAM', ram.slots],
       ['RAM máxima', ram.maxGb ? `${ram.maxGb} GB` : null],
     ]))}
-    ${r.components.gpus.map((g) => block('gpu', table([
+    ${r.components.gpus.map((g) => block('gpu', gpuPicker(g) + table([
       ['Modelo', g.name],
       ['Fabricante', g.vendor],
       ['VRAM', g.vramGb ? `${g.vramGb} GB` : 'Compartida'],
@@ -507,13 +554,13 @@ function renderComponents() {
       ['Enlace PCIe actual', g.pcie?.curWidth ? `Gen ${g.pcie.curGen} x${g.pcie.curWidth}` : null],
       ['Enlace PCIe máximo', g.pcie?.maxWidth ? `Gen ${g.pcie.maxGen} x${g.pcie.maxWidth}` : null],
       ['Driver', g.driverVersion],
-      ['Puntaje', g.score],
+      ['Índice estimado', g.score],
     ]))).join('')}
     ${block('ram', `${table([
       ['Total', `${ram.totalGb} GB ${ram.type || ''}`],
       ['Velocidad actual', ram.configured ? `${ram.configured} MT/s` : null],
       ['Velocidad nominal (XMP/EXPO)', ram.ratedSpeed ? `${ram.ratedSpeed} MT/s` : 'No determinada'],
-      ['Canal', ram.channel === 'dual' ? 'Doble canal' : ram.channel === 'single' ? 'Canal simple' : '—'],
+      ['Canal', { dual: 'Doble canal', 'dual-probable': 'Doble canal (probable)', single: 'Canal simple' }[ram.channel] || '—'],
     ])}<table style="margin-top:10px"><tr><th>Ranura</th><th>Capacidad</th><th>Velocidad</th><th>Fabricante</th><th>Número de parte</th></tr>${p.ram.modules.map((m) => `<tr><td>${esc(m.locator)}</td><td>${gb(m.size)}</td><td>${esc(m.configuredSpeed)} MT/s</td><td>${esc(m.manufacturer)}</td><td class="num">${esc(m.partNum)}</td></tr>`).join('')}</table>`)}
     ${block('storage', `<table><tr><th>Disco</th><th>Tipo</th><th>Interfaz</th><th>Capacidad</th><th></th></tr>${p.disks.map((d) => `<tr><td>${esc(d.name)}</td><td>${esc(d.type || '—')}</td><td>${esc(d.bus || '—')}</td><td>${gb(d.size)}</td><td>${d.isSystem ? 'Sistema' : ''}</td></tr>`).join('')}</table>`)}
     ${block('system', table([
@@ -582,8 +629,7 @@ async function activate(id) {
   renderProfileSelect();
   renderProfiles();
   if (state.profile) {
-    const res = await api.reanalyze(apiSettings());
-    if (res) apply(res);
+    applyReanalysis(await api.reanalyze(apiSettings()));
   }
   flash(id ? `Perfil «${activeProfile()?.name}» activo` : 'Vista global activa');
 }
@@ -643,7 +689,7 @@ function renderProfiles() {
                 <div class="vs-want">
                   <small>${esc(r.wanted)}</small>
                   <p>${esc(r.message)}</p>
-                  ${r.options ? `<div class="opts">${r.options.map((o) => `<div class="opt ${o.tier === 'Superior' ? 'sup' : ''}"><span>${esc(o.tier)}</span><b>${esc(o.name)}</b><em class="num">${esc(o.diff || '')}</em></div>`).join('')}</div>` : ''}
+                  ${checksHtml(r.checks)}${r.options ? `<div class="opts">${r.options.map((o) => `<div class="opt ${o.tier === 'Superior' ? 'sup' : ''}"><span>${esc(o.tier)}</span><b>${esc(o.name)}</b><em class="num">${esc(o.diff || '')}</em></div>`).join('')}</div>` : ''}
                 </div>
               </div>`;
             })
@@ -738,8 +784,18 @@ async function renderAbout() {
   $('#page-about').innerHTML = `
     <div class="page-head"><h1>Acerca de HardScope</h1><p>Versión ${esc(info.version)}</p></div>
     <div class="card about">
-      <p>HardScope analiza tu equipo, compara la placa madre con la tarjeta de video y el procesador, y detecta cuellos de botella con consejos concretos de mejora.</p>
-      <p>Los puntajes son estimaciones basadas en una base de datos local de GPUs, chipsets y procesadores (<span class="num">src/data</span>). Se amplía con cada versión.</p>
+      <p>HardScope analiza tu equipo, compara la placa madre con la tarjeta de video y el procesador, y propone mejoras.</p>
+      <h3 style="margin-top:18px">Cómo se calculan los resultados</h3>
+      <ul class="about-list">
+        <li><b>Índices estimados:</b> cada tarjeta y procesador tiene un índice de referencia (RTX 4090 = 100) en una base de datos local (<span class="num">src/data</span>), aproximado a partir de pruebas públicas. No son FPS ni mediciones de tu equipo.</li>
+        <li><b>Límite entre componentes:</b> se compara el índice del procesador (ajustado a la resolución elegida) con el de la tarjeta. Indica una tendencia; el resultado real depende del juego, la configuración y los límites de FPS. Para confirmarlo usa el Monitor en vivo.</li>
+        <li><b>Índice del equipo (0-100):</b> parte de 100 y resta por cada aviso según su severidad. Es un resumen orientativo de los avisos, no una medida de rendimiento.</li>
+        <li><b>Compatibilidad:</b> se deduce del chipset de la placa. Antes de comprar, confirma siempre la lista de CPUs compatibles y la BIOS en la web del fabricante de tu placa, y el tamaño y la alimentación de la tarjeta.</li>
+      </ul>
+      <h3 style="margin-top:18px">Privacidad</h3>
+      <p>Todo el análisis se hace en tu equipo. Los perfiles se guardan solo en tu PC. La única conexión a internet es la consulta de nuevas versiones en GitHub, cuando pulsas el botón.</p>
+      <label class="toggle"><input type="checkbox" id="hostToggle" ${state.settings.includeHost ? 'checked' : ''}> Incluir el nombre del equipo en los reportes exportados</label>
+      <p class="muted" style="font-size:12.5px">«Buscar actualizaciones» solo avisa si hay una versión nueva; la descarga e instalación las haces tú.</p>
       <div style="display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap">
         <button class="btn primary" id="updBtn">Buscar actualizaciones</button>
         ${info.repo ? `<button class="btn ghost" id="repoBtn">Ver en GitHub</button>` : ''}
@@ -747,6 +803,10 @@ async function renderAbout() {
       </div>
     </div>`;
   $('#repoBtn')?.addEventListener('click', () => api.openExternal(`https://github.com/${info.repo}`));
+  $('#hostToggle').addEventListener('change', (e) => {
+    state.settings.includeHost = e.target.checked;
+    saveSettings();
+  });
   $('#updBtn').addEventListener('click', async () => {
     $('#updMsg').textContent = 'Consultando…';
     const u = await api.checkUpdate();
@@ -759,4 +819,7 @@ async function renderAbout() {
 }
 
 renderAbout();
-initProfiles().then(scan);
+// Si los perfiles no cargan se sigue con la vista global: el análisis no debe quedar bloqueado.
+initProfiles()
+  .catch(() => flash('No se pudieron cargar los perfiles; se usa la vista global'))
+  .finally(scan);

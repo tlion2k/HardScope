@@ -174,3 +174,58 @@ test('actual vs perfil: sin perfil no hay comparación y con perfil coincidente 
   const m = analyze(profile(), { prefs: { name: 'X', cpuBrand: 'AMD', gpuBrand: 'NVIDIA' } }).profileMatch;
   assert.equal(m.required.length, 0);
 });
+test('fase 1: avisos de datos faltantes no bajan el índice y se informan', () => {
+  const base = analyze(profile()).health;
+  const r = analyze(profile({ gpus: [{ name: 'GPU Misteriosa X1', vram: 8192 }], issues: [{ area: 'system', text: 'No se pudo leer X' }] }));
+  assert.ok(r.findings.some((f) => f.id === 'gpu-unknown'));
+  assert.ok(r.health >= base - 2, 'gpu-unknown no penaliza');
+  assert.equal(r.dataIssues.length, 1);
+});
+
+test('fase 1: el límite de CPU sólo es crítico con una diferencia muy grande y se presenta como estimación', () => {
+  const r = analyze(profile({ cpu: { brand: 'AMD Ryzen 5 3600', cores: 12, physicalCores: 6 }, gpus: [{ name: 'NVIDIA GeForce RTX 4070 SUPER', vram: 12288 }] }));
+  const f = r.findings.find((x) => x.id === 'cpu-bottleneck');
+  assert.equal(f.severity, 'warning');
+  assert.match(f.detail, /estimado/);
+  assert.match(f.detail, /Monitor en vivo/);
+});
+
+test('fase 1: dos módulos en el mismo canal se detectan por la etiqueta de ranura', () => {
+  const mods = [{ size: 8 * GB, type: 'DDR4', configuredSpeed: 3200, locator: 'ChannelA-DIMM0' }, { size: 8 * GB, type: 'DDR4', configuredSpeed: 3200, locator: 'ChannelA-DIMM1' }];
+  const r = analyze(profile({ ram: { total: 16 * GB, slots: 4, modules: mods } }));
+  assert.equal(r.components.ram.channel, 'single');
+  assert.ok(r.findings.some((f) => f.id === 'ram-same-channel'));
+  const ok = analyze(profile({ ram: { total: 16 * GB, slots: 4, modules: [{ ...mods[0] }, { ...mods[1], locator: 'ChannelB-DIMM1' }] } }));
+  assert.equal(ok.components.ram.channel, 'dual');
+});
+
+test('fase 1: el monitor no diagnostica sin lectura de la GPU', () => {
+  assert.equal(liveBottleneck(Array(5).fill({ cpu: 90, cpuMaxCore: 100, ram: 50, gpu: null })).state, 'no-gpu-data');
+});
+
+test('fase 2: cada mejora trae su lista de verificación antes de comprar', () => {
+  const gpuStep = analyze(profile({ board: { manufacturer: 'Gigabyte', model: 'B650 AORUS ELITE' }, cpu: { brand: 'AMD Ryzen 7 7700X', cores: 16, physicalCores: 8 }, gpus: [{ name: 'NVIDIA GeForce GTX 1650', vram: 4096 }] })).upgrades.steps[0];
+  assert.ok(gpuStep.checks.some((c) => /Tamaño/.test(c)) && gpuStep.checks.some((c) => /conectores/.test(c)));
+  const cpuStep = analyze(profile({ board: { manufacturer: 'MSI', model: 'B450 TOMAHAWK' }, cpu: { brand: 'AMD Ryzen 5 3600', cores: 12, physicalCores: 6 }, gpus: [{ name: 'NVIDIA GeForce RTX 4070 SUPER', vram: 12288 }] })).upgrades.steps[0];
+  assert.equal(cpuStep.kind, 'cpu');
+  assert.match(cpuStep.checks[0], /MSI .*B450 TOMAHAWK/);
+  const m = analyze(profile(), { prefs: { name: 'X', cpuBrand: 'Intel' } }).profileMatch;
+  assert.ok(m.rows.find((r) => r.key === 'cpu').checks.some((c) => /BIOS/.test(c)));
+});
+
+test('fase 2: en un portátil no se sugieren cambios de CPU, placa ni GPU', () => {
+  const laptop = profile({ system: { laptop: true }, cpu: { brand: 'Intel Core i5-8250U', cores: 8, physicalCores: 4 }, gpus: [{ name: 'NVIDIA GeForce RTX 4090 Laptop GPU', vram: 16384 }] });
+  const r = analyze(laptop);
+  assert.equal(r.upgrades.steps.length, 0);
+  assert.match(r.upgrades.final, /portátil/);
+  assert.equal(r.balance.boardVsGpu.verdict, 'laptop');
+  assert.match(r.findings.find((f) => f.id === 'cpu-bottleneck').action, /portátil/);
+  const m = analyze(laptop, { prefs: { name: 'X', cpuBrand: 'AMD' } }).profileMatch;
+  assert.equal(m.required.length, 0);
+});
+
+test('fase 2: se puede elegir qué tarjeta analizar cuando hay varias', () => {
+  const two = profile({ gpus: [{ name: 'NVIDIA GeForce RTX 4070 SUPER', vram: 12288 }, { name: 'NVIDIA GeForce GTX 1650', vram: 4096 }] });
+  assert.equal(analyze(two).components.gpu.name, 'NVIDIA GeForce RTX 4070 SUPER');
+  assert.equal(analyze(two, { primaryGpu: 'NVIDIA GeForce GTX 1650' }).components.gpu.name, 'NVIDIA GeForce GTX 1650');
+});
