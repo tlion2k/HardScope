@@ -21,7 +21,6 @@ const COMP = {
   system: { label: 'Sistema', icon: '<path d="M3 4h18v12H3zM8 20h8m-4-4v4"/>' },
 };
 const svg = (path) => `<svg viewBox="0 0 24 24">${path}</svg>`;
-const SEV_ORDER = ['critical', 'warning', 'tip', 'ok'];
 
 const state = {
   settings: loadSettings(),
@@ -139,105 +138,53 @@ function apply({ profile, report }) {
   renderComponents();
 }
 
-const worstFor = (comp) => {
-  const f = state.report.findings.filter((x) => x.component === comp);
-  return SEV_ORDER.find((s) => f.some((x) => x.severity === s)) || 'ok';
-};
-
 // ---------------- Resumen ----------------
+// Resumen: sólo los componentes y el porcentaje de compatibilidad. El detalle vive en cada sección.
 function renderOverview() {
   const r = state.report;
   const c = r.components;
-  const healthSev = r.health >= 80 ? 'ok' : r.health >= 55 ? 'warning' : 'critical';
-  const healthLabel = r.health >= 90 ? 'Excelente' : r.health >= 80 ? 'Muy bueno' : r.health >= 65 ? 'Mejorable' : r.health >= 45 ? 'Necesita atención' : 'Cuellos de botella graves';
+  const p = state.profile;
+  const sev = r.health >= 80 ? 'ok' : r.health >= 55 ? 'warning' : 'critical';
+  const label = r.health >= 90 ? 'Excelente' : r.health >= 80 ? 'Muy buena' : r.health >= 65 ? 'Mejorable' : r.health >= 45 ? 'Baja' : 'Muy baja';
   const circ = 2 * Math.PI * 80;
-  const top = r.findings.find((f) => f.severity === 'critical' || f.severity === 'warning');
-  const bvg = r.balance.boardVsGpu;
-  const cvg = r.balance.cpuVsGpu;
-  const pcie = r.balance.pcie;
 
-  const verdictText = {
-    gpu: ['La GPU supera a la placa', 'critical'],
-    board: ['La placa supera a la GPU', 'tip'],
-    balanced: ['Equilibradas', 'ok'],
-    unknown: ['Sin datos suficientes', 'tip'],
-  }[bvg.verdict];
-  const cpuText = {
-    cpu: [`CPU limita ≈${cvg.bottleneckPct}%`, cvg.bottleneckPct > 20 ? 'critical' : 'warning'],
-    gpu: ['La GPU es el límite', 'tip'],
-    balanced: ['Equilibrados', 'ok'],
-    unknown: ['—', 'tip'],
-  }[cvg.verdict];
-
-  const cards = [
-    { k: 'cpu', model: c.cpu.name, spec: `${state.profile.cpu.physicalCores} núcleos · ${state.profile.cpu.cores} hilos`, score: c.cpu.effScore },
-    { k: 'board', model: `${c.board.manufacturer || ''} ${c.board.model || ''}`, spec: c.board.chipset ? `Chipset ${c.board.chipset.id} · ${c.board.platform?.socket} · PCIe ${c.board.chipset.gpuPcie}.0` : 'Chipset no identificado', score: c.board.platform?.effCeiling },
-    { k: 'gpu', model: c.gpu?.match?.name || c.gpu?.name || 'Sin GPU', spec: c.gpu ? `${c.gpu.vramGb || '?'} GB VRAM${pcie.gpuGen ? ` · PCIe ${pcie.gpuGen}.0 x${pcie.lanes}` : ''}` : '', score: c.gpu?.score },
-    { k: 'ram', model: `${c.ram.totalGb} GB ${c.ram.type || ''}`, spec: `${c.ram.modules} módulo(s) · ${c.ram.configured || '?'} MT/s${c.ram.ratedSpeed ? ` (nominal ${c.ram.ratedSpeed})` : ''} · ${c.ram.channel === 'dual' ? 'doble canal' : c.ram.channel === 'single' ? 'canal simple' : ''}` },
-    { k: 'storage', model: c.storage.system?.name || 'Disco del sistema', spec: `${c.storage.system ? `${c.storage.system.type || ''} ${c.storage.system.bus || ''}` : ''}${c.storage.freePct != null ? ` · ${c.storage.freePct}% libre en C:` : ''}` },
+  const rows = [
+    { k: 'cpu', model: c.cpu.name, spec: `${p.cpu.physicalCores} núcleos · ${p.cpu.cores} hilos` },
+    { k: 'board', model: `${c.board.manufacturer || ''} ${c.board.model || ''}`.trim(), spec: c.board.chipset ? `Chipset ${c.board.chipset.id} · ${c.board.platform?.socket}` : '' },
+    { k: 'gpu', model: c.gpu?.match?.name || c.gpu?.name || 'Sin tarjeta de video', spec: c.gpu?.vramGb ? `${c.gpu.vramGb} GB de VRAM` : '' },
+    { k: 'ram', model: `${c.ram.totalGb} GB ${c.ram.type || ''}`.trim(), spec: `${c.ram.modules} módulo(s) · ${c.ram.configured || '?'} MT/s` },
+    { k: 'storage', model: c.storage.system?.name || 'Disco del sistema', spec: c.storage.system ? `${c.storage.system.type || ''} ${c.storage.system.bus || ''}`.trim() : '' },
   ];
-  const maxScore = 130;
 
   $('#page-overview').innerHTML = `
-    <div class="page-head"><h1>Resumen del equipo</h1><p>${esc(state.profile.system.manufacturer)} ${esc(state.profile.system.model)} · ${esc(state.profile.os.distro)} · análisis para ${labelUsage()} a ${esc(r.settings.resolution)}</p></div>
-    <div class="hero">
-      <div class="card health sev-${healthSev}">
+    <div class="page-head"><h1>Resumen del equipo</h1><p>${esc(p.system.manufacturer)} ${esc(p.system.model)} · ${esc(p.os.distro)}</p></div>
+    <div class="ov">
+      <div class="card health sev-${sev}">
         <div class="gauge">
           <svg viewBox="0 0 190 190"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="var(--c)"/></linearGradient></defs>
             <circle class="track" cx="95" cy="95" r="80"/><circle class="bar" cx="95" cy="95" r="80" stroke="url(#gg)" stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-target="${circ * (1 - r.health / 100)}"/></svg>
           <div class="val"><b class="num">${r.health}</b><small>de 100</small></div>
         </div>
-        <div class="label tone">${healthLabel}</div>
-        <div class="chips">${SEV_ORDER.map((s) => `<span class="chip sev-${s}"><i style="background:var(--c)"></i>${r.counts[s]} ${SEV[s].label.toLowerCase()}${r.counts[s] === 1 || s === 'ok' ? '' : 's'}</span>`).join('')}</div>
+        <div class="label">Compatibilidad entre componentes</div>
+        <div class="tone ov-verdict">${label}</div>
       </div>
-      <div class="headline">
-        ${
-          top
-            ? `<div class="top tone sev-${top.severity}"><div class="kicker">${top.severity === 'critical' ? 'Cuello de botella principal' : 'Lo que más conviene mejorar'} · ${COMP[top.component].label}</div><h2>${esc(top.title)}</h2><p>${esc(top.detail)}</p>${top.action ? `<div class="action">${svg('<path d="M5 12h14m-6-6 6 6-6 6"/>')}<span><b>Qué hacer:</b> ${esc(top.action)}</span></div>` : ''}</div>`
-            : `<div class="top tone sev-ok"><div class="kicker">Todo en orden</div><h2>No hay cuellos de botella importantes</h2><p>Tus componentes están bien equilibrados para ${labelUsage()}. Revisa la sección de diagnóstico para ver consejos menores.</p></div>`
-        }
-        <div class="quick">
-          <div class="stat sev-${verdictText[1]}"><small>Placa vs tarjeta de video</small><b class="tone">${verdictText[0]}</b><em>${bvg.ceiling ? `Techo placa ${bvg.ceiling} · GPU ${bvg.gpuScore ?? '?'}` : ''}</em></div>
-          <div class="stat sev-${cpuText[1]}"><small>Procesador vs GPU</small><b class="tone">${cpuText[0]}</b><em>CPU ${cvg.cpuScore} · GPU ${cvg.gpuScore ?? '?'}</em></div>
-          <div class="stat sev-${pcie.effBW && pcie.effBW < pcie.fullBW ? 'warning' : 'ok'}"><small>Enlace PCIe de la GPU</small><b class="tone num">${pcie.linkGen ? `${pcie.linkGen}.0 x${pcie.curWidth || pcie.lanes}` : '—'}</b><em>${pcie.effBW ? `${pcie.effBW} de ${pcie.fullBW} GB/s` : ''}</em></div>
-        </div>
+      <div class="card ov-list">
+        ${rows
+          .map(
+            (x) => `<div class="ov-row">
+              <div class="ic">${svg(COMP[x.k].icon)}</div>
+              <div class="ov-kind">${COMP[x.k].label}</div>
+              <div class="ov-model"><b>${esc(x.model)}</b>${x.spec ? `<small>${esc(x.spec)}</small>` : ''}</div>
+            </div>`
+          )
+          .join('')}
       </div>
-    </div>
-    ${
-      r.upgrades.steps[0]
-        ? `<div class="next-banner" id="nextBanner">${svg('<path d="M12 19V5m-6 6 6-6 6 6"/>')}<div><small>Tu próxima mejora</small><b>${esc(r.upgrades.steps[0].pick)}</b></div><span class="num">+${r.upgrades.steps[0].gainPct}%</span>${svg('<path d="m9 6 6 6-6 6"/>')}</div>`
-        : ''
-    }
-    <div class="comp-grid">
-      ${cards
-        .map((x) => {
-          const s = worstFor(x.k);
-          return `<div class="comp" data-go="${x.k === 'board' || x.k === 'gpu' ? 'balance' : 'findings'}" data-filter="${x.k}">
-            <div class="ic">${svg(COMP[x.k].icon)}</div>
-            <span class="status tone sev-${s}">${SEV[s].label}</span>
-            <div class="kind">${COMP[x.k].label}</div>
-            <div class="model">${esc(x.model)}</div>
-            <div class="spec">${esc(x.spec)}</div>
-            ${x.score != null ? `<div class="meter" title="Puntaje ${x.score}"><i style="width:${Math.min(100, (x.score / maxScore) * 100)}%"></i></div>` : ''}
-          </div>`;
-        })
-        .join('')}
     </div>`;
 
   requestAnimationFrame(() => {
     const bar = $('#page-overview .gauge .bar');
     if (bar) bar.style.strokeDashoffset = bar.dataset.target;
   });
-  $('#nextBanner')?.addEventListener('click', () => go('upgrade'));
-  $('#page-overview').querySelectorAll('.comp').forEach((el) =>
-    el.addEventListener('click', () => {
-      if (el.dataset.go === 'findings') {
-        state.filter = el.dataset.filter;
-        renderFindings();
-      }
-      go(el.dataset.go);
-    })
-  );
 }
 
 const labelUsage = () => ({ gaming: 'juegos', creation: 'creación de contenido', office: 'oficina' })[state.report.settings.usage];
